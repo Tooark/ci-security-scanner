@@ -21,7 +21,7 @@ Nomes de input, defaults e precedência são os mesmos nos dois lados; só a
 sintaxe muda.
 
 Novo em pipelines? O
-[guia de onboarding](https://tooark.github.io/ci-security-scanner/) percorre
+[guia de onboarding](https://tooark.com/ci-security-scanner/) percorre
 cada arquivo deste repositório e o porquê de cada decisão, escrito para quem
 conhece desenvolvimento de software, mas não CI. Fonte em [`docs/`](docs/).
 
@@ -57,7 +57,7 @@ Funciona no gitlab.com e em qualquer instância que alcance
 
 ```yaml
 include:
-  - remote: "https://raw.githubusercontent.com/Tooark/ci-security-scanner/v1.0.0/templates/full-scan.yml"
+  - remote: "https://raw.githubusercontent.com/Tooark/ci-security-scanner/v1.1.0/templates/full-scan.yml"
     inputs:
       stage: test
       image: "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
@@ -72,7 +72,7 @@ versão na sua instância:
 
 ```yaml
 include:
-  - component: $CI_SERVER_FQDN/tooark/ci-security-scanner/full-scan@1.0.0
+  - component: $CI_SERVER_FQDN/tooark/ci-security-scanner/full-scan@1.1.0
     inputs:
       image: "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
       trivy_severity: "CRITICAL,HIGH"
@@ -85,7 +85,7 @@ include:
   with:
     fetch-depth: 0 # Betterleaks precisa do history completo
 
-- uses: Tooark/ci-security-scanner@v1.0.0
+- uses: Tooark/ci-security-scanner@v1.1.0
   with:
     command: full-scan
     image: "myapp:${{ github.sha }}"
@@ -263,7 +263,7 @@ ou `env` do job (GitHub) — o repasse para o container é automático:
 
 ```yaml
 # GitHub
-- uses: Tooark/ci-security-scanner@v1.0.0
+- uses: Tooark/ci-security-scanner@v1.1.0
   env:
     REPORT_TOKEN: ${{ secrets.REPORT_TOKEN }}
   with:

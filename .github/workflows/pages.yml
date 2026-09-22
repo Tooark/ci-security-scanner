@@ -2,7 +2,7 @@
 # ci-security-scanner :: GitHub Pages
 # -----------------------------------------------------------------------------
 # Publishes docs/ as the onboarding guide at
-# https://tooark.github.io/ci-security-scanner/.
+# https://tooark.com/ci-security-scanner/.
 #
 # The artifact-based deployment needs Pages switched to the "GitHub Actions"
 # source once, under Settings > Pages. The API cannot set it, so the first run

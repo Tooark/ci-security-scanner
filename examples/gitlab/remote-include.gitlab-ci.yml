@@ -27,7 +27,7 @@ include:
   # ---------------------------------------------------------------------------
   # Everything at once: image + source + secrets + Dockerfile lint.
   # ---------------------------------------------------------------------------
-  - remote: "https://raw.githubusercontent.com/Tooark/ci-security-scanner/v1.0.0/templates/full-scan.yml"
+  - remote: "https://raw.githubusercontent.com/Tooark/ci-security-scanner/v1.1.0/templates/full-scan.yml"
     inputs:
       stage: security
       image: "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
@@ -40,7 +40,7 @@ include:
   # ---------------------------------------------------------------------------
   # A second, faster job that runs on merge requests only: secrets, no image.
   # ---------------------------------------------------------------------------
-  - remote: "https://raw.githubusercontent.com/Tooark/ci-security-scanner/v1.0.0/templates/secret-scan.yml"
+  - remote: "https://raw.githubusercontent.com/Tooark/ci-security-scanner/v1.1.0/templates/secret-scan.yml"
     inputs:
       job_name: "security:secrets-mr"
       stage: security

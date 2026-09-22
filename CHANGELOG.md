@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-22
+
 ### Added
 
 - Onboarding guide in `docs/`, deployed to GitHub Pages by
@@ -19,6 +21,12 @@ All notable changes to this project are documented here. The format follows
   scattered across header comments and README gotchas: supported platforms,
   runners and executors, the component-to-image version pairing, and the
   network destinations a scan needs.
+- `scripts/check-sync.sh` now also verifies that every copy-paste reference in
+  the README, the examples, the onboarding guide and
+  `SUPPORTED-INTEGRATIONS.md` pins `COMPONENT_VERSION`. Only the three forms a
+  reader actually copies are matched; prose explaining the tagging scheme is
+  not. Without it, a release silently left the quick start teaching the
+  previous version.
 
 ### Changed
 
@@ -32,6 +40,8 @@ All notable changes to this project are documented here. The format follows
 - This repository's own workflows moved to `actions/checkout@v7`,
   `actions/configure-pages@v6` and `actions/deploy-pages@v5`. No consumer
   impact; the runners had started warning that Node 20 is deprecated.
+- The GitHub example in `examples/` moved to `actions/checkout@v7`, so a reader
+  copying it does not start on a version the runner already warns about.
 
 ### Fixed
 
@@ -40,6 +50,9 @@ All notable changes to this project are documented here. The format follows
   `ARK_IN_*` parity check now reads names with `while read` fed by process
   substitution, which keeps the loop in the current shell so the failure flag
   survives it.
+- The onboarding guide is linked by its canonical address,
+  `https://tooark.com/ci-security-scanner/`. The `tooark.github.io` URL used
+  until now is a redirect: the organization serves Pages from a custom domain.
 
 ## [1.0.0] - 2026-09-21
 
@@ -83,5 +96,6 @@ First release. Pins `ghcr.io/tooark/security-scanner:1.9`.
   socket mount, unredacted Betterleaks output, and Trivy's secret scanner
   writing findings into an uploaded artifact.
 
-[Unreleased]: https://github.com/Tooark/ci-security-scanner/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/Tooark/ci-security-scanner/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/Tooark/ci-security-scanner/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Tooark/ci-security-scanner/releases/tag/v1.0.0

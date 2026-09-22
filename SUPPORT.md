@@ -8,7 +8,7 @@ This document explains where to get help based on what you're trying to do.
 
 ## 🤔 I have a question
 
-**Read the onboarding guide first:** <https://tooark.github.io/ci-security-scanner/>
+**Read the onboarding guide first:** <https://tooark.com/ci-security-scanner/>
 
 It walks the repository file by file — what each artifact does, how the GitHub
 and GitLab front ends stay interchangeable, and the reasoning behind the
@@ -85,7 +85,7 @@ Full policy and response targets are in [`SECURITY.md`](SECURITY.md).
 
 | Audience                | Start here                                                         |
 | ----------------------- | ------------------------------------------------------------------ |
-| **New to CI pipelines** | [Onboarding guide](https://tooark.github.io/ci-security-scanner/)  |
+| **New to CI pipelines** | [Onboarding guide](https://tooark.com/ci-security-scanner/)  |
 | **Users**               | [README.md](README.md) · [README.pt-BR.md](README.pt-BR.md)        |
 | **Every input**         | The `spec:inputs` block of each file in [`templates/`](templates/) |
 | **Support boundaries**  | [SUPPORTED-INTEGRATIONS.md](SUPPORTED-INTEGRATIONS.md)             |
