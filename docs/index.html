@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-lang="pt">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="Guia de onboarding do ci-security-scanner: o que cada arquivo faz, como as fachadas GitHub e GitLab se conectam, e o porque de cada decisao.">
 
-<!-- Aplicado antes da pintura para que um tema escolhido nao pisque em claro. -->
+<!-- Aplicado antes da pintura para que tema e idioma escolhidos nao pisquem. -->
 <script>
   try {
     var arkTheme = localStorage.getItem("ark-theme");
@@ -13,6 +13,17 @@
       document.documentElement.setAttribute("data-theme", arkTheme);
       document.documentElement.style.colorScheme = arkTheme;
     }
+  } catch (e) {}
+
+  try {
+    var arkLang = localStorage.getItem("ark-lang");
+    if (arkLang !== "pt" && arkLang !== "en") {
+      // Sem preferencia salva: segue o navegador, com o portugues como padrao
+      // do documento (e o que o HTML ja carimba, para quem esta sem JS).
+      arkLang = (navigator.language || "pt").toLowerCase().indexOf("pt") === 0 ? "pt" : "en";
+    }
+    document.documentElement.setAttribute("data-lang", arkLang);
+    document.documentElement.lang = arkLang === "pt" ? "pt-BR" : "en";
   } catch (e) {}
 </script>
 
@@ -28,14 +39,19 @@
   img { max-width: 100%; }
   [hidden] { display: none !important; }
 
-  /* Alternador de tema: existe so nesta versao. Dentro do artifact e o host
-     que carimba data-theme na raiz; aqui nao ha host. */
+  /* Alternadores de tema e idioma: existem so nesta versao. Dentro do artifact
+     e o host que carimba data-theme na raiz; aqui nao ha host. */
   .masthead { position: relative; }
 
-  .theme-toggle {
+  .toggles {
     position: absolute;
     top: 44px;
     right: 0;
+    display: flex;
+    gap: 6px;
+  }
+
+  .toggle-btn {
     font-family: var(--f-mono);
     font-size: 10.5px;
     font-weight: 500;
@@ -48,19 +64,31 @@
     border-radius: 3px;
     padding: 8px 11px;
     cursor: pointer;
+    white-space: nowrap;
   }
 
-  .theme-toggle:hover {
+  .toggle-btn:hover {
     color: var(--ink);
     border-color: var(--rule-strong);
   }
 
+  /* Idioma. So existem regras de OCULTAR: o elemento visivel mantem o display
+     que o proprio CSS da pagina lhe deu (a lista .facts, por exemplo, e flex —
+     um display:block aqui a quebraria). Sem data-lang, o HTML ja nasce com
+     data-lang="pt", entao quem esta sem JS ve a pagina em portugues. */
+  :root[data-lang="pt"] [lang="en"] { display: none; }
+  :root[data-lang="en"] [lang="pt-BR"] { display: none; }
+
   @media (max-width: 900px) {
-    .theme-toggle { top: 30px; padding: 6px 9px; }
+    .toggles { top: 30px; }
+    .toggle-btn { padding: 6px 9px; }
   }
 </style>
 
-<title>ci-security-scanner por dentro</title>
+<title>CI Security Scanner</title>
+<!-- Servido pelo proprio site: docs/ e a raiz publicada, entao ../ sairia
+     dela e cairia na raiz de tooark.com, que e outro repositorio. -->
+<link rel="icon" href="favicon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
@@ -590,14 +618,23 @@
 
   <header class="masthead">
     <p class="eyebrow">Onboarding · Tooark</p>
-    <h1>ci-security-scanner<br><span class="accent">por dentro</span></h1>
-    <p class="thesis">
+    <h1 lang="pt-BR">ci-security-scanner<br><span class="accent">por dentro</span></h1>
+    <h1 lang="en">ci-security-scanner<br><span class="accent">from the inside</span></h1>
+
+    <p class="thesis" lang="pt-BR">
       Este repositório <strong>não contém um scanner de segurança</strong>. Ele contém a embalagem
       reutilizável de um — publicada duas vezes, uma para GitHub Actions e uma para GitLab CI, com os
       mesmos nomes, os mesmos defaults e a mesma regra de precedência nas duas.
       Este guia percorre cada arquivo e, principalmente, o porquê de cada decisão.
     </p>
-    <ul class="facts">
+    <p class="thesis" lang="en">
+      This repository <strong>does not contain a security scanner</strong>. It contains the reusable
+      packaging for one — published twice, once for GitHub Actions and once for GitLab CI, with the
+      same names, the same defaults and the same precedence rule on both sides.
+      This guide walks every file and, above all, the reasoning behind each decision.
+    </p>
+
+    <ul class="facts" lang="pt-BR">
       <li><b>Tooark/ci-security-scanner</b></li>
       <li>v<b>1.1.0</b></li>
       <li>scanner <b>1.9</b></li>
@@ -605,12 +642,25 @@
       <li><b>2</b> plataformas</li>
       <li>MIT</li>
     </ul>
-    <button type="button" id="theme-toggle" class="theme-toggle" aria-live="polite">modo escuro</button>
+    <ul class="facts" lang="en">
+      <li><b>Tooark/ci-security-scanner</b></li>
+      <li>v<b>1.1.0</b></li>
+      <li>scanner <b>1.9</b></li>
+      <li><b>7</b> scans</li>
+      <li><b>2</b> platforms</li>
+      <li>MIT</li>
+    </ul>
+
+    <div class="toggles">
+      <button type="button" id="lang-toggle" class="toggle-btn" aria-live="polite">English</button>
+      <button type="button" id="theme-toggle" class="toggle-btn" aria-live="polite">modo escuro</button>
+    </div>
   </header>
 
-  <nav aria-label="Seções do guia">
-    <p class="nav-title">Ordem de leitura</p>
-    <ol>
+  <nav aria-label="Guide sections">
+    <p class="nav-title" lang="pt-BR">Ordem de leitura</p>
+    <p class="nav-title" lang="en">Reading order</p>
+    <ol lang="pt-BR">
       <li><a href="#visao"><span class="n">01</span><span>O que é, o que não é</span></a></li>
       <li><a href="#conceitos"><span class="n">02</span><span>Conceitos de CI</span></a></li>
       <li><a href="#ferramentas"><span class="n">03</span><span>O que o scanner roda</span></a></li>
@@ -623,6 +673,19 @@
       <li><a href="#decisoes"><span class="n">10</span><span>Decisões e armadilhas</span></a></li>
       <li><a href="#dev"><span class="n">11</span><span>Traduzindo para dev</span></a></li>
     </ol>
+    <ol lang="en">
+      <li><a href="#visao"><span class="n">01</span><span>What it is, what it is not</span></a></li>
+      <li><a href="#conceitos"><span class="n">02</span><span>CI concepts</span></a></li>
+      <li><a href="#ferramentas"><span class="n">03</span><span>What the scanner runs</span></a></li>
+      <li><a href="#mapa"><span class="n">04</span><span>Repository map</span></a></li>
+      <li><a href="#github"><span class="n">05</span><span>The GitHub front end</span></a></li>
+      <li><a href="#gitlab"><span class="n">06</span><span>The GitLab front end</span></a></li>
+      <li><a href="#motor"><span class="n">07</span><span>The engine</span></a></li>
+      <li><a href="#versao"><span class="n">08</span><span>Single source of truth</span></a></li>
+      <li><a href="#ci"><span class="n">09</span><span>The project's own CI</span></a></li>
+      <li><a href="#decisoes"><span class="n">10</span><span>Decisions and traps</span></a></li>
+      <li><a href="#dev"><span class="n">11</span><span>Translated to dev terms</span></a></li>
+    </ol>
   </nav>
 
   <main>
@@ -630,6 +693,7 @@
     <!-- ============ 01 ============ -->
     <section id="visao">
       <span class="h2-num">01</span>
+      <div lang="pt-BR">
       <h2>O que é — e o que não é</h2>
       <p class="deck">
         O scanner de verdade mora em outro repositório. Aqui está só a configuração de CI que o invoca,
@@ -690,11 +754,76 @@
         <code>snake_case</code> no GitLab). Metade dos scripts em <code class="path">scripts/</code> existe
         só para impedir que essa paridade se perca com o tempo.
       </p>
+      </div>
+
+      <div lang="en">
+      <h2>What it is — and what it is not</h2>
+      <p class="deck">
+        The scanner itself lives in another repository. What is here is only the CI configuration that
+        invokes it, versioned and published as if it were a package.
+      </p>
+
+      <p>
+        The scanner is a Docker image built from <code>Tooark/base-images</code> and published as
+        <code>ghcr.io/tooark/security-scanner:1.9</code>. Inside it there is a CLI called
+        <code>ark-tools</code> that orchestrates three tools and produces a JSON report in the
+        <code>ark-report-tools v1.2</code> format.
+      </p>
+
+      <p>This repository solves a different and very specific problem:</p>
+
+      <div class="note">
+        <span class="label">The problem</span>
+        <p>“We have 40 projects. I do not want to copy 80 lines of security YAML into each of them, and
+        when the scanner changes I do not want to edit 40 files.”</p>
+      </div>
+
+      <p>
+        In development vocabulary: this repository is a <strong>library</strong>, and the projects that
+        consume it are its dependents. The tag <code>v1.0.0</code> is the package version. Consumers do not
+        copy code — they declare a dependency.
+      </p>
+
+      <h3>Two front ends over the same behaviour</h3>
+
+      <p>
+        The complication is that the company uses GitHub Actions <em>and</em> GitLab CI, which are
+        incompatible systems. So the same library is published with two front ends:
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Platform</th><th>Format</th><th>Files</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="term">GitHub</td>
+              <td>Composite Action</td>
+              <td><code>action.yml</code> + <code>src/run-scanner.sh</code></td>
+            </tr>
+            <tr>
+              <td class="term">GitLab</td>
+              <td>CI/CD Components</td>
+              <td><code>templates/</code> — 7 files, one per scan</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        The rule the project imposes on itself: <strong>same input names, same defaults and same precedence
+        on both platforms</strong> — only the syntax differs (<code>kebab-case</code> on GitHub,
+        <code>snake_case</code> on GitLab). Half of what lives in <code class="path">scripts/</code> exists
+        only to stop that parity from eroding over time.
+      </p>
+      </div>
     </section>
 
     <!-- ============ 02 ============ -->
     <section id="conceitos">
       <span class="h2-num">02</span>
+      <div lang="pt-BR">
       <h2>Os conceitos de CI, em termos de dev</h2>
       <p class="deck">
         Cinco termos destravam a leitura de qualquer arquivo deste repositório.
@@ -774,11 +903,95 @@
         <code>exit-code</code> em vez de derrubar o passo — útil para adotar o scanner em um projeto legado
         sem travar todo mundo no primeiro dia.
       </p>
+      </div>
+
+      <div lang="en">
+      <h2>CI concepts, in dev terms</h2>
+      <p class="deck">
+        Five terms unlock reading any file in this repository.
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Term</th><th>What it is</th><th>Analogy</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="term">Pipeline<br>/ Workflow</td>
+              <td>Everything that runs when you push</td>
+              <td>The build's <code>main()</code></td>
+            </tr>
+            <tr>
+              <td class="term">Job</td>
+              <td>An isolated unit of work, in a fresh container or VM</td>
+              <td>A function — runs in its own process</td>
+            </tr>
+            <tr>
+              <td class="term">Stage</td>
+              <td>A sequential grouping of jobs (<code>build</code> → <code>test</code> → <code>deploy</code>)</td>
+              <td>Phases. Jobs in the same stage run in parallel</td>
+            </tr>
+            <tr>
+              <td class="term">Runner</td>
+              <td>The machine that executes the job</td>
+              <td>The server the process runs on</td>
+            </tr>
+            <tr>
+              <td class="term">Artifact</td>
+              <td>A file the job produces that outlives it</td>
+              <td>A persisted return value</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>Two details explain much of the code in this repository.</p>
+
+      <h3>A job starts from nothing every time</h3>
+      <p>
+        New container, empty disk. That is why <em>caching</em> exists — without it Trivy would download a
+        vulnerability database of hundreds of megabytes on every run. The cache is the subject of a good
+        part of <code>action.yml</code>.
+      </p>
+
+      <h3>A job “fails” when the command exits non-zero</h3>
+      <p>
+        That is how a scanner <strong>blocks</strong> a merge: it finds a critical CVE and returns 1. This is
+        called a <strong>failure gate</strong>, and much of this project's input surface exists only so you
+        can choose when the gate closes.
+      </p>
+
+      <div class="gates">
+        <div class="gate" style="--tone: var(--crit)">
+          <h4>Trivy</h4>
+          <p>Fails when a severity listed in <code>trivy_severity_fail</code> has a fix available.</p>
+          <span class="off">turn off → trivy_exit_code: "0"</span>
+        </div>
+        <div class="gate" style="--tone: var(--warn)">
+          <h4>Hadolint</h4>
+          <p>Fails at or above the level set in <code>hadolint_failure_level</code>.</p>
+          <span class="off">turn off → hadolint_failure_level: "none"</span>
+        </div>
+        <div class="gate" style="--tone: var(--crit)">
+          <h4>Betterleaks</h4>
+          <p>Fails when any secret is detected.</p>
+          <span class="off">turn off → betterleaks_fail_on_findings: "false"</span>
+        </div>
+      </div>
+
+      <p>
+        On GitHub there is a middle ground: <code>soft-fail: "true"</code> turns any gate into the
+        <code>exit-code</code> output instead of failing the step — useful for adopting the scanner in a
+        legacy project without blocking everyone on day one.
+      </p>
+      </div>
     </section>
 
     <!-- ============ 03 ============ -->
     <section id="ferramentas">
       <span class="h2-num">03</span>
+      <div lang="pt-BR">
       <h2>O que o scanner realmente roda</h2>
       <p class="deck">
         Três ferramentas com escopos que não se sobrepõem, e sete comandos que as combinam.
@@ -839,11 +1052,77 @@
         Os relatórios caem em <code class="path">scan-reports/</code> e sobem como artifact.
         O <code>full-scan</code> ainda escreve o consolidado <code>full-scan-report.json</code>.
       </p>
+      </div>
+
+      <div lang="en">
+      <h2>What the scanner actually runs</h2>
+      <p class="deck">
+        Three tools with non-overlapping scopes, and seven commands that combine them.
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Tool</th><th>Looks for</th><th>Example finding</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="term">Trivy</td>
+              <td>Vulnerabilities (CVEs) in dependencies, Docker images and infrastructure config</td>
+              <td><code>log4j 2.14</code> → CVE-2021-44228, CRITICAL</td>
+            </tr>
+            <tr>
+              <td class="term">Hadolint</td>
+              <td>Dockerfile bad practice</td>
+              <td>Using <code>:latest</code>, a container running as root</td>
+            </tr>
+            <tr>
+              <td class="term">Betterleaks</td>
+              <td>Secrets leaked in the code <strong>and in the git history</strong></td>
+              <td>An AWS key committed and “removed” three commits later</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>The seven commands</h3>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Command</th><th>What it scans</th><th>Tool</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>full-scan</code></td><td>Everything at once: image + source + secrets + Dockerfile, merged into one report</td><td>all three</td></tr>
+            <tr><td><code>image-scan</code></td><td>A Docker image</td><td>Trivy</td></tr>
+            <tr><td><code>filesystem-scan</code></td><td>Source dependencies (lockfiles, OS and language packages)</td><td>Trivy</td></tr>
+            <tr><td><code>config-scan</code></td><td>IaC and config: Terraform, Kubernetes, and so on</td><td>Trivy</td></tr>
+            <tr><td><code>repo-scan</code></td><td>A repository — including a remote one, by URL</td><td>Trivy</td></tr>
+            <tr><td><code>dockerfile-lint</code></td><td>One Dockerfile</td><td>Hadolint</td></tr>
+            <tr><td><code>secret-scan</code></td><td>Secrets in the working tree and in the history</td><td>Betterleaks</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        On GitLab each command is <strong>one file</strong> in <code class="path">templates/</code> that
+        generates <strong>one job</strong>. On GitHub they are all <strong>a single Action</strong>, selected
+        through the <code>command</code> input. That asymmetry is imposed by the platforms, not a style
+        choice: on GitLab a template is a job generator; on GitHub an Action is a step inside a job that
+        already exists.
+      </p>
+
+      <p>
+        Reports land in <code class="path">scan-reports/</code> and are uploaded as an artifact.
+        <code>full-scan</code> also writes the consolidated <code>full-scan-report.json</code>.
+      </p>
+      </div>
     </section>
 
     <!-- ============ 04 ============ -->
     <section id="mapa">
       <span class="h2-num">04</span>
+      <div lang="pt-BR">
       <h2>Mapa do repositório</h2>
       <p class="deck">
         Vinte e poucos arquivos, em cinco grupos com propósitos bem distintos.
@@ -889,6 +1168,55 @@
           (<code>bad interpreter</code>) não diz isso.
         </p>
       </div>
+      </div>
+
+      <div lang="en">
+      <h2>Repository map</h2>
+      <p class="deck">
+        Twenty-odd files, in five groups with clearly distinct purposes.
+      </p>
+
+      <div class="tree">
+        <div class="row grp"><span>Deliverable — GitHub</span><span></span></div>
+        <div class="row"><span class="f">action.yml</span><span class="d">The public API signature: ~45 inputs, 3 outputs, 4 steps</span></div>
+        <div class="row"><span class="f">src/run-scanner.sh</span><span class="d">The implementation: turns inputs into a <code>docker run</code></span></div>
+
+        <div class="row grp"><span>Deliverable — GitLab</span><span></span></div>
+        <div class="row"><span class="f">templates/full-scan.yml</span><span class="d">All three scanners in one job, one consolidated report</span></div>
+        <div class="row"><span class="f dim">templates/image-scan.yml</span><span class="d">One template per command — same structure</span></div>
+        <div class="row"><span class="f dim">templates/filesystem-scan.yml</span><span class="d"></span></div>
+        <div class="row"><span class="f dim">templates/config-scan.yml</span><span class="d"></span></div>
+        <div class="row"><span class="f dim">templates/repo-scan.yml</span><span class="d"></span></div>
+        <div class="row"><span class="f dim">templates/dockerfile-lint.yml</span><span class="d"></span></div>
+        <div class="row"><span class="f dim">templates/secret-scan.yml</span><span class="d"></span></div>
+
+        <div class="row grp"><span>Integrity</span><span></span></div>
+        <div class="row"><span class="f">VERSION</span><span class="d">Single source of truth for versions</span></div>
+        <div class="row"><span class="f">scripts/check-sync.sh</span><span class="d">Contract test between the two front ends</span></div>
+        <div class="row"><span class="f">scripts/validate-templates.py</span><span class="d">Structural validation of the GitLab templates</span></div>
+
+        <div class="row grp"><span>The project's own CI</span><span></span></div>
+        <div class="row"><span class="f">.github/workflows/ci.yml</span><span class="d">Lint, validation and a self-scan on every PR</span></div>
+        <div class="row"><span class="f">.github/workflows/release.yml</span><span class="d">Publishes the release and moves the floating tags</span></div>
+        <div class="row"><span class="f">.github/dependabot.yml</span><span class="d">Weekly updates of the referenced Actions</span></div>
+
+        <div class="row grp"><span>Documentation and hygiene</span><span></span></div>
+        <div class="row"><span class="f">examples/</span><span class="d">Copy-ready pipelines for both platforms</span></div>
+        <div class="row"><span class="f">README.md · README.pt-BR.md</span><span class="d">Documentation in English and Portuguese</span></div>
+        <div class="row"><span class="f">CHANGELOG.md · LICENSE</span><span class="d">Version history and the MIT licence</span></div>
+        <div class="row"><span class="f dim">.editorconfig · .gitattributes</span><span class="d">Force UTF-8 and LF line endings</span></div>
+        <div class="row"><span class="f dim">.gitignore</span><span class="d">Ignores <code>scan-reports/</code> and <code>.cache/</code></span></div>
+      </div>
+
+      <div class="warn">
+        <span class="label">Windows</span>
+        <p>
+          <code>.gitattributes</code> forcing <strong>LF</strong> is not fussiness: a <code>.sh</code> saved
+          with CRLF simply does not execute on a Linux runner, and the error you get
+          (<code>bad interpreter</code>) does not say so.
+        </p>
+      </div>
+      </div>
     </section>
 
   <!--
@@ -900,6 +1228,7 @@
   <!-- ============ 05 ============ -->
     <section id="github">
       <span class="h2-num">05</span>
+      <div lang="pt-BR">
       <h2>A fachada GitHub: <code>action.yml</code></h2>
       <p class="deck">
         Uma composite Action é uma Action feita de outras Actions e comandos shell, sem código compilado.
@@ -971,11 +1300,88 @@
           e é uma classe de bug real e frequente em GitHub Actions.
         </p>
       </div>
+      </div>
+
+      <div lang="en">
+      <h2>The GitHub front end: <code>action.yml</code></h2>
+      <p class="deck">
+        A composite Action is an Action made of other Actions and shell commands, with no compiled code.
+      </p>
+
+      <p>
+        When someone writes <code><!--email_off-->uses: Tooark/ci-security-scanner@v1.1.0<!--/email_off--></code>, GitHub downloads this
+        repository and runs the steps declared here <em>inside the caller's job</em>. The file has four
+        blocks.
+      </p>
+
+      <h3><code>inputs:</code> — the parameters</h3>
+      <p>
+        About 45 of them, each with a <code>description</code> and a <code>default</code>. Think of them as
+        the library's public function signature: it is the contract with consumers, and changing it breaks
+        people.
+      </p>
+
+<pre><code><span class="k">trivy-severity:</span>
+  <span class="k">description:</span> "Severities included in the report, e.g. CRITICAL,HIGH."
+  <span class="k">required:</span> false
+  <span class="k">default:</span> ""</code></pre>
+
+      <p>
+        Almost all of them are <code>default: ""</code>. That is <strong>not</strong> laziness — it is the
+        precedence rule, explained under <a href="#decisoes">Decisions</a>.
+      </p>
+
+      <h3><code>outputs:</code> — the return value</h3>
+      <p>
+        <code>exit-code</code>, <code>reports-dir</code> and <code>report</code>. They let the next step read
+        the result with <code>steps.scan.outputs.exit-code</code>.
+      </p>
+
+      <h3><code>branding:</code></h3>
+      <p>Icon and colour on the GitHub Marketplace. Purely cosmetic.</p>
+
+      <h3><code>runs:</code> — the function body</h3>
+      <p>Four steps, in this order:</p>
+
+      <ol>
+        <li><strong>cache</strong> — works out in bash whether the Trivy cache should be used and under which
+          key. <code>dockerfile-lint</code> and <code>secret-scan</code> skip it, because Hadolint and
+          Betterleaks never read the CVE database.</li>
+        <li><strong>Restore the Trivy database</strong> — <code>actions/cache/restore@v6</code>.</li>
+        <li><strong>scan</strong> — calls <code>bash "$GITHUB_ACTION_PATH/src/run-scanner.sh"</code>.
+          <strong>This is where the work happens.</strong> Everything else is input and output.</li>
+        <li><strong>Save the Trivy database</strong> and <strong>Upload security reports</strong> — save the
+          cache and publish the reports as an artifact.</li>
+      </ol>
+
+      <h3>The detail worth internalising</h3>
+      <p>In the <code>env:</code> block of the <code>scan</code> step:</p>
+
+<pre><code><span class="k">env:</span>
+  <span class="k">ARK_IN_TRIVY_SEVERITY:</span> ${{ inputs.trivy-severity }}
+  <span class="k">ARK_IN_IMAGE:</span>          ${{ inputs.image }}</code></pre>
+
+      <p>
+        Inputs are <strong>not</strong> interpolated into the text of the script. They arrive as environment
+        variables prefixed with <code>ARK_IN_</code>.
+      </p>
+
+      <div class="note">
+        <span class="label">Why</span>
+        <p>
+          If an input were pasted straight into the script body — <code>run: docker run ... ${{ inputs.image }}</code>
+          — a value like <code>"; rm -rf / #</code> would become a command. Passing through <code>env:</code>,
+          it is always just a value. It is the same reasoning as <em>prepared statements</em> against SQL
+          injection, and it is a real, frequent class of bug in GitHub Actions.
+        </p>
+      </div>
+      </div>
     </section>
 
     <!-- ============ 06 ============ -->
     <section id="gitlab">
       <span class="h2-num">06</span>
+      <div lang="pt-BR">
       <h2>A fachada GitLab: <code class="path">templates/</code></h2>
       <p class="deck">
         Um CI/CD Component do GitLab é um arquivo YAML com duas metades separadas por <code>---</code>.
@@ -1046,11 +1452,86 @@
         <code class="path">templates/</code> quando a versão muda, empurra a tag e publica no catálogo
         interno. O GitHub continua sendo a fonte da verdade; nada é escrito no espelho.
       </p>
+      </div>
+
+      <div lang="en">
+      <h2>The GitLab front end: <code class="path">templates/</code></h2>
+      <p class="deck">
+        A GitLab CI/CD Component is a YAML file with two halves separated by <code>---</code>.
+      </p>
+
+<pre><code><span class="c"># top half: parameter declaration</span>
+<span class="k">spec:</span>
+  <span class="k">inputs:</span>
+    <span class="k">trivy_severity:</span>
+      <span class="k">default:</span> ""
+      <span class="k">regex:</span> "^[A-Z,]*$"      <span class="c"># GitLab validates before anything runs</span>
+      <span class="k">description:</span> "..."
+---
+<span class="c"># bottom half: the template of the generated job</span>
+"$[[ inputs.job_name ]]":
+  <span class="k">stage:</span> $[[ inputs.stage ]]
+  <span class="k">image:</span> ...
+  <span class="k">script:</span> ...</code></pre>
+
+      <p>
+        The <code>$[[ inputs.x ]]</code> syntax is substituted by GitLab at the moment the pipeline is
+        assembled — before anything runs.
+      </p>
+
+      <p>
+        GitLab's <code>spec:</code> is more expressive than GitHub's <code>inputs:</code>: it accepts
+        <code>options:</code> (an enum), <code>regex:</code> and <code>type:</code>. The project uses that —
+        <code>trivy_exit_code</code> only accepts <code>""</code>, <code>"0"</code> or <code>"1"</code>.
+        Anyone passing something else gets an error <em>before</em> the pipeline runs, not halfway through it.
+      </p>
+
+      <h3>How it is consumed</h3>
+
+<pre><code><span class="c"># in the .gitlab-ci.yml of the project to be scanned</span>
+<span class="k">include:</span>
+  - <span class="k">remote:</span> "https://raw.githubusercontent.com/Tooark/ci-security-scanner/v1.1.0/templates/full-scan.yml"
+    <span class="k">inputs:</span>
+      <span class="k">stage:</span> security
+      <span class="k">image:</span> "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+      <span class="k">trivy_severity:</span> "CRITICAL,HIGH"</code></pre>
+
+      <p>
+        A job named <code>security:full-scan</code> then appears in the pipeline. Since it is an ordinary
+        job, anything the inputs do not cover can be overridden by redeclaring its name:
+      </p>
+
+<pre><code>"security:full-scan":
+  <span class="k">needs:</span> ["build"]
+  <span class="k">cache:</span> []                <span class="c"># disable the Trivy cache</span>
+  <span class="k">variables:</span>
+    <span class="k">TRIVY_SCANNERS:</span> "vuln,secret,misconfig,license"</code></pre>
+
+      <p class="caption">examples/gitlab/remote-include.gitlab-ci.yml — the design's escape hatch.</p>
+
+      <h3>Why 7 nearly identical files</h3>
+      <p>
+        Because on GitLab one template equals one generated job. There is no file that generates “whichever
+        job you pick”. The duplication is imposed by the platform — and that is exactly why
+        <code>check-sync.sh</code> exists: duplication without automated verification rots.
+      </p>
+
+      <h3>What about the catalog?</h3>
+      <p>
+        GitLab's CI/CD Catalog only lists components hosted <em>on the instance itself</em>, so a GitHub
+        repository cannot be published to it directly. The
+        <code class="path">examples/gitlab-catalog-mirror/</code> folder carries the pipeline for a mirror
+        project that closes the gap: it polls GitHub releases on a weekly schedule, copies
+        <code class="path">templates/</code> across when the version moves, pushes the tag and publishes to
+        the internal catalog. GitHub stays the source of truth; nothing is authored in the mirror.
+      </p>
+      </div>
     </section>
 
     <!-- ============ 07 ============ -->
     <section id="motor">
       <span class="h2-num">07</span>
+      <div lang="pt-BR">
       <h2>O motor: <code>src/run-scanner.sh</code></h2>
       <p class="deck">
         246 linhas de bash que traduzem ~40 variáveis <code>ARK_IN_*</code> em um <code>docker run</code>.
@@ -1154,11 +1635,114 @@
       <p><strong>Devolve a posse dos arquivos.</strong> A imagem roda como usuário não-root (uid 1000), que não
       é o usuário do runner. Sem o <code>chown</code> de volta no fim, o passo de upload de artifact não
       conseguiria ler os relatórios que o scanner acabou de escrever.</p>
+      </div>
+
+      <div lang="en">
+      <h2>The engine: <code>src/run-scanner.sh</code></h2>
+      <p class="deck">
+        246 lines of bash that translate ~40 <code>ARK_IN_*</code> variables into a <code>docker run</code>.
+        Almost every comment in it documents a bug someone already hit.
+      </p>
+
+      <h3>The full path of one run</h3>
+
+      <div class="diagram">
+        <svg viewBox="0 0 960 216" role="img" aria-label="Flow: the team's workflow, action.yml, run-scanner.sh, the ark-tools container, reports and exit code">
+          <defs>
+            <marker id="arw-en" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--rule-strong)"></path>
+            </marker>
+          </defs>
+
+          <rect x="6" y="56" width="168" height="84" rx="4" fill="var(--surface)" stroke="var(--rule)" stroke-width="1"></rect>
+          <text x="90" y="42" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--accent)">1</text>
+          <text x="90" y="88" text-anchor="middle" font-family="Archivo, sans-serif" font-size="14.5" font-weight="600" fill="var(--ink)">the team's workflow</text>
+          <text x="90" y="108" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--ink-2)"><!--email_off-->uses: ...@v1.1.0<!--/email_off--></text>
+          <text x="90" y="126" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--ink-3)">with: command, image</text>
+          <line x1="174" y1="98" x2="192" y2="98" stroke="var(--rule-strong)" stroke-width="1.4" marker-end="url(#arw-en)"></line>
+
+          <rect x="198" y="56" width="168" height="84" rx="4" fill="var(--surface)" stroke="var(--rule)" stroke-width="1"></rect>
+          <text x="282" y="42" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--accent)">2</text>
+          <text x="282" y="88" text-anchor="middle" font-family="Archivo, sans-serif" font-size="14.5" font-weight="600" fill="var(--ink)">action.yml</text>
+          <text x="282" y="108" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--ink-2)">inputs → ARK_IN_*</text>
+          <text x="282" y="126" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--ink-3)">restores the cache</text>
+          <line x1="366" y1="98" x2="384" y2="98" stroke="var(--rule-strong)" stroke-width="1.4" marker-end="url(#arw-en)"></line>
+
+          <rect x="390" y="56" width="168" height="84" rx="4" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.6"></rect>
+          <text x="474" y="42" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--accent)">3</text>
+          <text x="474" y="88" text-anchor="middle" font-family="Archivo, sans-serif" font-size="14.5" font-weight="600" fill="var(--ink)">run-scanner.sh</text>
+          <text x="474" y="108" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--ink-2)">builds the docker run</text>
+          <text x="474" y="126" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--ink-3)">only what is non-empty</text>
+          <line x1="558" y1="98" x2="576" y2="98" stroke="var(--rule-strong)" stroke-width="1.4" marker-end="url(#arw-en)"></line>
+
+          <rect x="582" y="56" width="168" height="84" rx="4" fill="var(--surface)" stroke="var(--rule)" stroke-width="1"></rect>
+          <text x="666" y="42" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--accent)">4</text>
+          <text x="666" y="88" text-anchor="middle" font-family="Archivo, sans-serif" font-size="14.5" font-weight="600" fill="var(--ink)">ark-tools</text>
+          <text x="666" y="108" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--ink-2)">Trivy · Hadolint</text>
+          <text x="666" y="126" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--ink-3)">Betterleaks</text>
+          <line x1="750" y1="98" x2="768" y2="98" stroke="var(--rule-strong)" stroke-width="1.4" marker-end="url(#arw-en)"></line>
+
+          <rect x="774" y="56" width="180" height="84" rx="4" fill="var(--surface)" stroke="var(--rule)" stroke-width="1"></rect>
+          <text x="864" y="42" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--accent)">5</text>
+          <text x="864" y="88" text-anchor="middle" font-family="Archivo, sans-serif" font-size="14.5" font-weight="600" fill="var(--ink)">output</text>
+          <text x="864" y="108" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--ink-2)">scan-reports/</text>
+          <text x="864" y="126" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--ink-3)">exit code → the gate</text>
+
+          <line x1="6" y1="176" x2="954" y2="176" stroke="var(--rule)" stroke-width="1"></line>
+          <text x="6" y="196" font-family="JetBrains Mono, monospace" font-size="10.5" fill="var(--ink-3)">the runner host</text>
+          <text x="582" y="196" font-family="JetBrains Mono, monospace" font-size="10.5" fill="var(--ink-3)">inside the container · uid 1000 · workspace mounted at /workspace</text>
+        </svg>
+      </div>
+      <p class="caption">On GitLab steps 2 and 3 do not exist: the job <em>is</em> the container, and the template does the same work in <code>before_script</code>.</p>
+
+      <h3>What the script does, in order</h3>
+
+      <p><strong>Validates the command</strong> against a fixed list of seven. No input ever becomes an
+      arbitrary command.</p>
+
+      <p><strong>Sets up the volumes</strong> — the workspace goes to <code>/workspace</code>, the reports to
+      <code>/reports</code>, the Trivy cache to <code>/home/app/.cache/trivy</code>.</p>
+
+      <p><strong>Rewrites paths.</strong> Someone writing <code>path: src/</code> means the runner's disk, but
+      the container sees <code>/workspace/src</code>. The <code>to_container_path</code> function does that
+      translation and lets URLs and absolute paths through untouched.</p>
+
+      <p><strong>Forwards only what is non-empty.</strong> This is the five-line function that holds up the
+      precedence rule of the whole project:</p>
+
+<pre><code><span class="k">add_env</span>() {
+  <span class="k">local</span> name="$1" value="$2"
+  [ -n "$value" ] || <span class="k">return</span> 0     <span class="c"># ← the heart of the precedence rule</span>
+  DOCKER_ARGS+=(-e "$name=$value")
+}</code></pre>
+
+      <p><strong>Secrets come from the environment, never from inputs.</strong> <code>TRIVY_TOKEN</code>,
+      <code>REPORT_TOKEN</code>, registry credentials and friends are read from the job environment and
+      passed to the container; the log prints <code>***</code>.</p>
+
+      <div class="warn">
+        <span class="label">Trap</span>
+        <p>
+          Input values appear in the rendered pipeline configuration, visible to anyone with read access to
+          the project. <strong>A token passed as an input is a leaked token.</strong>
+        </p>
+      </div>
+
+      <p><strong>Builds the arguments per command.</strong> Each of the seven has a different shape. One
+      example of care for usability: in <code>full-scan</code>, if you passed no image at all, the script
+      turns on <code>FULL_SCAN_SKIP_IMAGE=true</code> itself rather than letting Trivy fail trying to scan an
+      empty string.</p>
+
+      <p><strong>Hands file ownership back.</strong> The image runs as a non-root user (uid 1000), which is
+      not the runner user. Without the <code>chown</code> at the end, the artifact upload step could not read
+      the reports the scanner had just written.</p>
+      </div>
     </section>
 
     <!-- ============ 08 ============ -->
     <section id="versao">
       <span class="h2-num">08</span>
+      <div lang="pt-BR">
       <h2>Versão única e testes de contrato</h2>
       <p class="deck">
         A parte que mais ensina, e o padrão mais transferível deste repositório para qualquer outro projeto.
@@ -1231,11 +1815,90 @@ SCANNER_VERSION=1.9</code></pre>
 python3 scripts/validate-templates.py
 ./scripts/check-sync.sh
 shellcheck -s bash src/run-scanner.sh scripts/check-sync.sh</code></pre>
+      </div>
+
+      <div lang="en">
+      <h2>Single source of truth and contract tests</h2>
+      <p class="deck">
+        The part with the most to teach, and the most transferable pattern in this repository.
+      </p>
+
+      <h3>The problem</h3>
+      <p>
+        The same scanner version appears in <strong>ten places</strong>: seven templates,
+        <code>action.yml</code> and two fallbacks inside <code>run-scanner.sh</code>. Updating from
+        <code>1.9</code> to <code>2.0</code> and forgetting one template means a project silently running the
+        old version. YAML has no compiler; nobody notices.
+      </p>
+
+      <h3>The solution</h3>
+      <p><code>VERSION</code> is the single constant:</p>
+
+<pre><code><span class="c"># Single source of truth for versions in this repository.</span>
+COMPONENT_VERSION=1.1.0
+SCANNER_IMAGE=ghcr.io/tooark/security-scanner
+SCANNER_VERSION=1.9</code></pre>
+
+      <p>And <code>scripts/check-sync.sh</code> is the contract test that fails CI when anything diverges. It
+      checks four invariants:</p>
+
+      <ol>
+        <li>Every template and <code>action.yml</code> pins exactly the image declared in
+          <code>VERSION</code>.</li>
+        <li>In each template, every declared <code>ARK_IN_*</code> is actually read, and every
+          <code>ARK_IN_*</code> read was declared.</li>
+        <li>Every <code>ARK_IN_*</code> set in <code>action.yml</code> is forwarded by
+          <code>run-scanner.sh</code>.</li>
+        <li>Every copy-paste reference in the docs and the examples pins
+          <code>COMPONENT_VERSION</code>.</li>
+      </ol>
+
+      <div class="note">
+        <span class="label">Why</span>
+        <p>
+          Items 2 and 3 catch the nastiest bug in this kind of project: you add an input, document it, and
+          forget to connect one of the ends. The input exists in the documentation, the user sets the value,
+          <strong>and nothing happens</strong>. Silently. The script turns that into a red build.
+        </p>
+      </div>
+
+      <p>
+        <code>scripts/validate-templates.py</code> does the equivalent for the structure of the GitLab
+        templates: the <code>---</code> separator is present, every <code>$[[ inputs.x ]]</code> references a
+        declared input, every declared input is used (a dead input is a lie in the documentation),
+        <code>default</code> is among the <code>options</code>, and the template defines exactly one job.
+      </p>
+
+      <p>
+        The comment at the top of the file gives the best possible justification: GitLab only reports these
+        errors when a pipeline is created — which is to say, <strong>in a consumer's project</strong>, not in
+        this one. Far too late.
+      </p>
+
+      <h3>The practical rule</h3>
+      <div class="note">
+        <span class="label">When adding an input</span>
+        <p>
+          Touch all <strong>four</strong> places, or <code>check-sync.sh</code> will tell you:
+          the template's <code>spec:inputs</code>, the template's <code>variables:</code> block as
+          <code>ARK_IN_*</code>, <code>action.yml</code>, and <code>src/run-scanner.sh</code>.
+        </p>
+      </div>
+
+      <p>To run the validations locally, before opening the PR:</p>
+
+<pre><code>python3 -m pip install pyyaml
+
+python3 scripts/validate-templates.py
+./scripts/check-sync.sh
+shellcheck -s bash src/run-scanner.sh scripts/check-sync.sh</code></pre>
+      </div>
     </section>
 
     <!-- ============ 09 ============ -->
     <section id="ci">
       <span class="h2-num">09</span>
+      <div lang="pt-BR">
       <h2>O CI do próprio projeto</h2>
       <p class="deck">
         Uma dobra que confunde no começo: a pasta <code class="path">.github/workflows/</code> não tem nada a
@@ -1306,11 +1969,86 @@ shellcheck -s bash src/run-scanner.sh scripts/check-sync.sh</code></pre>
         digest: sem isso, pinar congelaria a dependência em vez de controlá-la. <strong>Pinar sem um mecanismo
         de atualização não é segurança, é dívida.</strong>
       </p>
+      </div>
+
+      <div lang="en">
+      <h2>The project's own CI</h2>
+      <p class="deck">
+        A fold that confuses at first: the <code class="path">.github/workflows/</code> folder has nothing to
+        do with what the project <em>delivers</em>. It is this repository's CI, like any other project has.
+      </p>
+
+      <h3><code>ci.yml</code> — runs on push and pull request</h3>
+
+      <p>
+        <strong>Job <code>lint</code>:</strong> parses every YAML file in the repository, runs the two
+        validation scripts, runs <code>shellcheck</code> (a bash linter) and <code>actionlint</code> (a GitHub
+        Actions linter).
+      </p>
+
+      <p>
+        <strong>Job <code>self-scan</code>:</strong> the project scans itself with its own Action
+        (<code>uses: ./</code>). That is dogfooding, and it works as an integration test — if the Action is
+        broken, this repository's own CI breaks.
+      </p>
+
+      <p>Two lines are worth noticing:</p>
+
+<pre><code><span class="k">permissions:</span>
+  <span class="k">contents:</span> read     <span class="c"># the job token only reads — least privilege</span></code></pre>
+
+<pre><code><span class="k">uses:</span> docker://rhysd/actionlint@sha256:b1934ee5...   <span class="c"># pinned by digest</span></code></pre>
+
+      <div class="note">
+        <span class="label">Why</span>
+        <p>
+          A Docker tag (<code>:1.7.12</code>) can be repointed by the image owner at any moment. A SHA-256
+          digest is immutable. Since that third-party container runs inside this project's CI, pinning by
+          digest stops unreviewed code from starting to run here without a single commit.
+        </p>
+      </div>
+
+      <h3><code>release.yml</code> — runs when a <code>v*.*.*</code> tag is pushed</h3>
+
+      <p>
+        Revalidates everything, <strong>checks that the tag agrees with <code>COMPONENT_VERSION</code></strong>
+        — tag <code>v1.0.1</code> with <code>VERSION=1.0.0</code> is a refused release — creates the GitHub
+        Release with generated notes, and moves the floating tags.
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Reference</th><th>Resolves to</th><th>Use when</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>v1.1.0</code></td><td>Exactly that release</td><td>Reproducible pipelines</td></tr>
+            <tr><td><code>v1.1</code></td><td>Newest patch of the 1.1 line</td><td>Automatic patch updates</td></tr>
+            <tr><td><code>v1</code></td><td>Newest release of the 1.x line</td><td>Automatic minor and patch updates</td></tr>
+            <tr><td><code>main</code></td><td>Unreleased work</td><td>Never in a pipeline you care about</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        It is the Actions ecosystem convention — <code>actions/checkout@v7</code> works this way. The README
+        is honest about the cost: pinning <code>v1</code> means running code you have not reviewed after the
+        next release.
+      </p>
+
+      <h3><code>dependabot.yml</code></h3>
+      <p>
+        Opens a weekly PR updating the referenced Actions. The comment in the file closes the digest
+        reasoning: without it, pinning would freeze the dependency instead of controlling it.
+        <strong>Pinning without an update mechanism is not security, it is debt.</strong>
+      </p>
+      </div>
     </section>
 
     <!-- ============ 10 ============ -->
     <section id="decisoes">
       <span class="h2-num">10</span>
+      <div lang="pt-BR">
       <h2>Decisões e armadilhas</h2>
       <p class="deck">
         As escolhas que parecem estranhas na primeira leitura, e o motivo de cada uma. Esta seção é a que mais
@@ -1416,11 +2154,123 @@ shellcheck -s bash src/run-scanner.sh scripts/check-sync.sh</code></pre>
           GitLab não permite que um input omita uma palavra-chave, e lista vazia é como se diz “qualquer
           runner”. Pipelines aceitam; apenas o schema JSON do editor do GitLab reclama.</li>
       </ul>
+      </div>
+
+      <div lang="en">
+      <h2>Decisions and traps</h2>
+      <p class="deck">
+        The choices that look strange on a first read, and the reason behind each. This is the section that
+        saves the most time when something goes wrong.
+      </p>
+
+      <h3>The precedence rule — why <code>default: ""</code> everywhere</h3>
+
+<pre><code>input  &gt;  CI variable / job env  &gt;  image default</code></pre>
+
+      <p>
+        <strong>An empty input is never forwarded.</strong> That lets a project set
+        <code>TRIVY_SEVERITY</code> once as a global variable and leave the input blank in every job, instead
+        of repeating it. Set both and the input wins.
+      </p>
+      <p>
+        If an empty input were forwarded, it would overwrite the global variable with an empty string and
+        break that pattern. It is the difference between <code>undefined</code> and <code>""</code> — and the
+        project handles it explicitly on both platforms, with <code>add_env()</code> in bash and
+        <code>ark_apply_inputs</code> in the templates.
+      </p>
+
+      <h3>The Trivy cache, and the separate <em>save</em> step</h3>
+      <p>
+        Trivy's CVE database is large. Downloading it on every build is the slowest part of a scan and the
+        easiest way to hit a registry rate limit. Both platforms cache it, with different strategies: GitLab
+        points <code>TRIVY_CACHE_DIR</code> at <code>.cache/trivy</code> inside the project and uses a fixed
+        key shared by every branch; GitHub uses <code>actions/cache</code> with one entry per day per scanner
+        version, falling back to the previous day — so Trivy <em>refreshes</em> an existing database instead
+        of fetching a whole one.
+      </p>
+
+      <div class="note">
+        <span class="label">The subtlety that explains the extra step</span>
+        <p>
+          On GitHub, the normal <code>actions/cache</code> saves in a <em>post step</em>, and post steps
+          <strong>are skipped when an earlier step failed</strong>. But this Action fails by design when it
+          finds a vulnerability. Without the separate save step, only repositories that find nothing would
+          ever populate the cache — precisely the ones that need it least.
+        </p>
+      </div>
+
+      <p>
+        An operational detail for self-hosted GitLab instances: by default the runner cache lives on the
+        runner's own disk. With several runners, a job only hits the cache if it lands on the runner that
+        wrote it. Configuring <em>distributed caching</em> (S3 or equivalent) in <code>config.toml</code> is
+        what makes the hit rate consistent.
+      </p>
+
+      <h3><code>entrypoint: [""]</code> in every GitLab template</h3>
+      <p>
+        The image has an entrypoint that execs <code>ark-tools</code> directly. GitLab Runner keeps the image
+        entrypoint and attaches a shell to it. Without clearing it, the job dies before the script runs.
+      </p>
+
+      <h3><code>GIT_DEPTH: "0"</code> / <code>fetch-depth: 0</code></h3>
+      <p>
+        By default CI does a <em>shallow clone</em> (only the last commit) because it is faster. But
+        Betterleaks looks for secrets <strong>in the history</strong> — and the classic case is exactly the
+        key that was committed and “removed” afterwards.
+      </p>
+
+      <div class="warn">
+        <span class="label">Silent failure</span>
+        <p>
+          With a shallow clone, Betterleaks sees almost nothing <strong>and does not complain</strong>. The
+          job passes green and you believe you are protected. That is why every template and every example
+          forces full depth.
+        </p>
+      </div>
+
+      <h3><code>docker-socket: "true"</code> hands over root on the runner</h3>
+      <p>
+        Mounting <code>/var/run/docker.sock</code> gives the container full control of the host's Docker
+        daemon — it can start a privileged container and read the whole machine. It is off by default. It is
+        only needed to scan an image built in the <em>same job</em>; an image already pushed to a registry
+        does not need it. On a shared self-hosted runner, the recommendation is to push to the registry and
+        scan from there.
+      </p>
+
+      <h3>Reports can contain the secrets they found</h3>
+      <p>
+        Two settings turn an artifact into a disclosure: <code>betterleaks_redact: "0"</code> writes detected
+        secrets in cleartext, and adding <code>secret</code> to <code>trivy_scanners</code> puts Trivy's
+        findings in the report. Artifacts are downloadable by anyone with read access to the repository. The
+        default is 100% redaction, and the log prints only rule, file, line and short commit — never the
+        secret.
+      </p>
+
+      <h3>File ownership on the GitHub runner</h3>
+      <p>
+        The image runs as uid 1000, which is not the runner user. The script creates the reports directory
+        with broad permissions during the scan, hands ownership back at the end and tightens the permissions
+        again; the workspace is declared a git <em>safe directory</em> through environment variables. On an
+        ephemeral runner this is immaterial; on a self-hosted one with concurrent jobs there is a short
+        window in which another job could write there.
+      </p>
+
+      <h3>Two smaller gotchas</h3>
+      <ul>
+        <li><strong><code>dockerfile-lint</code> handles one file per job.</strong> For several, use
+          <code>full-scan</code> with <code>dockerfiles: "a,b,c"</code>, or include the template once per
+          file with a different <code>job_name</code>.</li>
+        <li><strong>The empty default of <code>tags</code> renders as <code>tags: []</code>.</strong> GitLab
+          has no way for an input to omit a keyword, and an empty list is how you say “any runner”.
+          Pipelines accept it; only GitLab's editor JSON schema objects.</li>
+      </ul>
+      </div>
     </section>
 
     <!-- ============ 11 ============ -->
     <section id="dev">
       <span class="h2-num">11</span>
+      <div lang="pt-BR">
       <h2>Traduzindo para vocabulário de dev</h2>
       <p class="deck">
         O repositório inteiro mapeia quase um para um em conceitos que você já usa todo dia.
@@ -1471,6 +2321,62 @@ shellcheck -s bash src/run-scanner.sh scripts/check-sync.sh</code></pre>
         Guia de onboarding · Tooark/ci-security-scanner v1.1.0 · scanner 1.9<br>
         A referência autoritativa de cada input é o bloco <code>spec:inputs</code> do template correspondente.
       </p>
+      </div>
+
+      <div lang="en">
+      <h2>Translated to dev vocabulary</h2>
+      <p class="deck">
+        The whole repository maps almost one-to-one onto concepts you already use every day.
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>In the repository</th><th>Development equivalent</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>action.yml</code> · <code>inputs:</code> block</td><td>Public signature / interface</td></tr>
+            <tr><td><code>src/run-scanner.sh</code></td><td>Implementation behind the interface</td></tr>
+            <tr><td><code>templates/</code></td><td>The same interface ported to another platform</td></tr>
+            <tr><td><code>VERSION</code></td><td>Single constant (DRY)</td></tr>
+            <tr><td><code>scripts/check-sync.sh</code></td><td>Contract test between the implementations</td></tr>
+            <tr><td><code>scripts/validate-templates.py</code></td><td>Linter / static analysis</td></tr>
+            <tr><td><code>.github/workflows/ci.yml</code></td><td>The test suite running on every PR</td></tr>
+            <tr><td><code>self-scan</code> job</td><td>Integration test (dogfooding)</td></tr>
+            <tr><td><code>examples/</code></td><td>Executable documentation</td></tr>
+            <tr><td>Tags <code>v1.1.0</code> / <code>v1</code></td><td>SemVer + line alias</td></tr>
+            <tr><td><code>CHANGELOG.md</code></td><td>Release notes</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Where to start reading the code</h3>
+      <p>In this order, which is the order the data flows in:</p>
+
+      <ol>
+        <li><code>examples/github/security-scan.yml</code> — what the end user writes</li>
+        <li><code>action.yml</code>, skipping straight to the <code>runs:</code> block at the end — what
+          happens when they write that</li>
+        <li><code>src/run-scanner.sh</code> — how it becomes a <code>docker run</code></li>
+        <li><code>templates/full-scan.yml</code> — the same path, in the GitLab dialect</li>
+        <li><code>scripts/check-sync.sh</code> — what stops the two from diverging</li>
+      </ol>
+
+      <div class="note">
+        <span class="label">If you only have ten minutes</span>
+        <p>
+          Read <a href="#decisoes">Decisions and traps</a> and the four-places rule under
+          <a href="#versao">Single source of truth</a>. That is what comes up most in code review and in
+          broken pipelines.
+        </p>
+      </div>
+
+      <p class="closer">
+        Onboarding guide · Tooark/ci-security-scanner v1.1.0 · scanner 1.9<br>
+        The authoritative reference for every input is the <code>spec:inputs</code> block of the matching
+        template.
+      </p>
+      </div>
     </section>
 
   </main>
@@ -1511,8 +2417,63 @@ shellcheck -s bash src/run-scanner.sh scripts/check-sync.sh</code></pre>
 </script>
 
 <script>
-  /* Alternador de tema (so nesta versao). Os tokens de cor da pagina ja cobrem
-     os tres estados: sem carimbo, data-theme="light" e data-theme="dark". */
+  /* Alternadores de tema e idioma (so nesta versao). Os tokens de cor da pagina
+     ja cobrem os tres estados de tema: sem carimbo, data-theme="light" e
+     data-theme="dark". O idioma e puramente CSS: cada bloco existe duas vezes
+     no DOM e o data-lang da raiz esconde um dos dois. */
+
+  var ARK_STRINGS = {
+    pt: {
+      title: "CI Security Scanner",
+      description: "Guia de onboarding do ci-security-scanner: o que cada arquivo faz, como as fachadas GitHub e GitLab se conectam, e o porquê de cada decisão.",
+      langBtn: "English",
+      langAria: "Switch to English",
+      dark: "modo escuro",
+      light: "modo claro"
+    },
+    en: {
+      title: "CI Security Scanner",
+      description: "Onboarding guide to ci-security-scanner: what each file does, how the GitHub and GitLab front ends connect, and the reasoning behind each decision.",
+      langBtn: "Português",
+      langAria: "Mudar para português",
+      dark: "dark mode",
+      light: "light mode"
+    }
+  };
+
+  (function () {
+    var root = document.documentElement;
+    var btn = document.getElementById("lang-toggle");
+    var themeBtn = document.getElementById("theme-toggle");
+    if (!btn) return;
+
+    function currentLang() {
+      return root.getAttribute("data-lang") === "en" ? "en" : "pt";
+    }
+
+    function paintLang() {
+      var lang = currentLang();
+      var s = ARK_STRINGS[lang];
+      root.lang = lang === "pt" ? "pt-BR" : "en";
+      btn.textContent = s.langBtn;
+      btn.setAttribute("aria-label", s.langAria);
+      document.title = s.title;
+      var meta = document.querySelector('meta[name="description"]');
+      if (meta) meta.setAttribute("content", s.description);
+      if (window.arkPaintTheme) window.arkPaintTheme();
+    }
+
+    btn.addEventListener("click", function () {
+      var next = currentLang() === "en" ? "pt" : "en";
+      root.setAttribute("data-lang", next);
+      try { localStorage.setItem("ark-lang", next); } catch (e) {}
+      paintLang();
+    });
+
+    window.arkCurrentLang = currentLang;
+    paintLang();
+  })();
+
   (function () {
     var root = document.documentElement;
     var btn = document.getElementById("theme-toggle");
@@ -1528,9 +2489,14 @@ shellcheck -s bash src/run-scanner.sh scripts/check-sync.sh</code></pre>
 
     function paint() {
       var theme = current();
+      var lang = window.arkCurrentLang ? window.arkCurrentLang() : "pt";
+      var s = ARK_STRINGS[lang];
       root.style.colorScheme = theme;
-      btn.textContent = theme === "dark" ? "modo claro" : "modo escuro";
+      btn.textContent = theme === "dark" ? s.light : s.dark;
     }
+
+    // O alternador de idioma chama isto para retraduzir o rotulo do tema.
+    window.arkPaintTheme = paint;
 
     btn.addEventListener("click", function () {
       var next = current() === "dark" ? "light" : "dark";
