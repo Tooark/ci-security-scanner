@@ -1,0 +1,123 @@
+name: 🐛 Bug report
+description: Report a defect in the GitLab templates, the GitHub Action or the runner script.
+title: "[bug] "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report! Please fill out the sections below.
+        For **security vulnerabilities**, do NOT file a public issue — see [`SECURITY.md`](https://github.com/Tooark/ci-security-scanner/blob/main/SECURITY.md).
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight
+      options:
+        - label: I have searched existing issues and this is not a duplicate.
+          required: true
+        - label: I am pinning a released tag, not `main`.
+          required: true
+        - label: This is not a security vulnerability (those go through the private channel).
+          required: true
+        - label: This is a defect in the component, not a finding the scanner reported in my own code.
+          required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: How are you consuming it?
+      options:
+        - GitHub Action (uses:)
+        - GitLab — remote include
+        - GitLab — CI/CD Catalog component
+        - Directly (docker run / src/run-scanner.sh)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: command
+    attributes:
+      label: Which scan?
+      options:
+        - full-scan
+        - image-scan
+        - filesystem-scan
+        - config-scan
+        - repo-scan
+        - dockerfile-lint
+        - secret-scan
+        - Not scan-specific (release, docs, tooling)
+    validations:
+      required: true
+
+  - type: input
+    id: component-version
+    attributes:
+      label: Component version
+      description: The tag you pinned.
+      placeholder: "e.g., v1.0.0"
+    validations:
+      required: true
+
+  - type: input
+    id: scanner-version
+    attributes:
+      label: Scanner image tag
+      description: Leave the default unless you overrode scanner_version / scanner-version.
+      placeholder: "e.g., ghcr.io/tooark/security-scanner:1.9"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: runner
+    attributes:
+      label: Runner
+      description: Self-hosted runners are where image-scan, caching and file ownership behave differently.
+      options:
+        - GitHub-hosted (ubuntu-latest)
+        - GitHub self-hosted
+        - GitLab.com shared runner
+        - GitLab self-hosted — docker executor
+        - GitLab self-hosted — other executor
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: snippet
+    attributes:
+      label: Pipeline snippet
+      description: The job or step that reproduces the problem, with the inputs you set.
+      render: yaml
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: |
+        The job log around the failure. **Redact credentials, tokens and any detected secret** —
+        a scan log can quote the finding that tripped the gate.
+      render: shell
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else?
+      description: Overrides applied to the generated job, custom reports_dir, proxy, air-gapped instance, etc.

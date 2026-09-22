@@ -427,13 +427,14 @@ customizados de `reports-dir` herdam esse tratamento.
 ## Estrutura do repositório
 
 ```text
-templates/          Templates de componente CI/CD do GitLab, um job cada
-action.yml          Composite Action do GitHub
-src/run-scanner.sh  Runner compartilhado por trás da Action
-scripts/            Validações rodadas no CI e localmente
-examples/           Pipelines prontos para copiar, nas duas plataformas
-docs/               Guia de onboarding, publicado no GitHub Pages
-VERSION             Fonte única de verdade das versões
+templates/                  Templates de componente CI/CD do GitLab, um job cada
+action.yml                  Composite Action do GitHub
+src/run-scanner.sh          Runner compartilhado por trás da Action
+scripts/                    Validações rodadas no CI e localmente
+examples/                   Pipelines prontos para copiar, nas duas plataformas
+docs/                       Guia de onboarding, publicado no GitHub Pages
+SUPPORTED-INTEGRATIONS.md   Plataformas, runners e versões suportadas
+VERSION                     Fonte única de verdade das versões
 ```
 
 ---
