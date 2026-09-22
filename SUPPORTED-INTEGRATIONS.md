@@ -15,7 +15,7 @@ filled in; the `bug` template asks for exactly the fields this page indexes.
 
 | Platform                               | How it is consumed                          | Status         |
 | -------------------------------------- | ------------------------------------------- | -------------- |
-| **GitHub Actions**                     | `uses: Tooark/ci-security-scanner@v1.0.0`   | ✅ Supported   |
+| **GitHub Actions**                     | `uses: Tooark/ci-security-scanner@v1.1.0`   | ✅ Supported   |
 | **GitLab CI — remote include**         | `include: - remote: ".../templates/*.yml"`  | ✅ Supported   |
 | **GitLab CI — CI/CD Catalog**          | `include: - component: $CI_SERVER_FQDN/...` | ✅ Supported   |
 | **Direct invocation**                  | `docker run` / `src/run-scanner.sh`         | ⚠️ Best effort |

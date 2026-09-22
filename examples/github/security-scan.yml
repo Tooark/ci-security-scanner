@@ -25,19 +25,19 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Betterleaks walks the git history; a shallow clone hides most of it.
           fetch-depth: 0
 
       - name: Secret scan
-        uses: Tooark/ci-security-scanner@v1.0.0
+        uses: Tooark/ci-security-scanner@v1.1.0
         with:
           command: secret-scan
           artifact-name: secret-scan-reports
 
       - name: Dockerfile lint
-        uses: Tooark/ci-security-scanner@v1.0.0
+        uses: Tooark/ci-security-scanner@v1.1.0
         with:
           command: dockerfile-lint
           dockerfile: Dockerfile
@@ -52,7 +52,7 @@ jobs:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -66,7 +66,7 @@ jobs:
 
       - name: Full security scan
         id: scan
-        uses: Tooark/ci-security-scanner@v1.0.0
+        uses: Tooark/ci-security-scanner@v1.1.0
         env:
           # Secrets travel through env, never through inputs.
           REPORT_TOKEN: ${{ secrets.REPORT_TOKEN }}
@@ -97,11 +97,11 @@ jobs:
     name: Advisory scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Filesystem scan
         id: fs
-        uses: Tooark/ci-security-scanner@v1.0.0
+        uses: Tooark/ci-security-scanner@v1.1.0
         with:
           command: filesystem-scan
           soft-fail: "true"

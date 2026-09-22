@@ -6,7 +6,7 @@ contact_links:
     url: https://github.com/Tooark/ci-security-scanner/security/advisories/new
     about: Please use private security advisories, not public issues.
   - name: 📘 Onboarding guide
-    url: https://tooark.github.io/ci-security-scanner/
+    url: https://tooark.com/ci-security-scanner/
     about: What each file does and why — read this before filing a usage question.
   - name: 🐳 Issue in the scanner image itself
     url: https://github.com/Tooark/base-images/issues/new/choose

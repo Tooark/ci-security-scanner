@@ -9,7 +9,7 @@ GitHub composite Action. Keeping those two front ends interchangeable is the
 constraint that shapes almost every rule below.
 
 If you are new to CI pipelines, read the
-[onboarding guide](https://tooark.github.io/ci-security-scanner/) first — it
+[onboarding guide](https://tooark.com/ci-security-scanner/) first — it
 explains what each file does and why.
 
 ## Table of contents
@@ -137,7 +137,7 @@ The project follows [Semantic Versioning](https://semver.org/).
 version and the scanner image tag that every template and the Action pin:
 
 ```text
-COMPONENT_VERSION=1.0.0
+COMPONENT_VERSION=1.1.0
 SCANNER_IMAGE=ghcr.io/tooark/security-scanner
 SCANNER_VERSION=1.9
 ```

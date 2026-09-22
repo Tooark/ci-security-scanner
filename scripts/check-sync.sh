@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Guards the two invariants that keep the GitLab templates and the GitHub
-# Action interchangeable:
+# Guards the invariants that keep the GitLab templates and the GitHub Action
+# interchangeable, and the documentation honest:
 #
 #   1. every artifact pins exactly the scanner image declared in VERSION;
-#   2. every ARK_IN_* an artifact sets is actually consumed downstream.
+#   2. every ARK_IN_* an artifact sets is actually consumed downstream;
+#   3. every copy-paste reference in the docs pins COMPONENT_VERSION.
 #
 # Run it locally with: ./scripts/check-sync.sh
 #
@@ -162,6 +163,56 @@ while read -r name; do
   action_ok=0
 done < <(grep -oE 'ARK_IN_[A-Z0-9_]+' action.yml | sort -u)
 [ "$action_ok" -eq 1 ] && ok "action.yml -> src/run-scanner.sh"
+
+echo
+echo "4. component version in copy-paste references"
+
+COMPONENT_VERSION="$(version_field COMPONENT_VERSION)"
+
+# Only the three forms a reader copies into their own pipeline. Prose that
+# explains the tagging scheme -- "v1.0.0 is never moved", the table of floating
+# tags -- is illustrative and deliberately not matched.
+VERSION_REF_RE='ci-security-scanner@v[0-9]+\.[0-9]+\.[0-9]+'
+VERSION_REF_RE="$VERSION_REF_RE|ci-security-scanner/v[0-9]+\.[0-9]+\.[0-9]+/"
+VERSION_REF_RE="$VERSION_REF_RE|ci-security-scanner/[a-z-]+@[0-9]+\.[0-9]+\.[0-9]+"
+
+version_ref_files=(
+  README.md
+  README.pt-BR.md
+  SUPPORTED-INTEGRATIONS.md
+  docs/index.html
+  examples/github/security-scan.yml
+  examples/gitlab/catalog-component.gitlab-ci.yml
+  examples/gitlab/remote-include.gitlab-ci.yml
+  examples/gitlab-catalog-mirror/README.md
+)
+
+for file in "${version_ref_files[@]}"; do
+  if [ ! -f "$file" ]; then
+    fail "$file is checked for the component version but does not exist"
+    continue
+  fi
+
+  file_ok=1
+  seen=0
+  while read -r ref; do
+    [ -n "$ref" ] || continue
+    seen=1
+    # Strip a trailing slash first, then everything up to the last @ or / and
+    # an optional v, leaving the bare version.
+    found="$(printf '%s' "$ref" | sed -E 's#/$##; s#.*[@/]v?##')"
+    if [ "$found" != "$COMPONENT_VERSION" ]; then
+      fail "$file pins $found, expected $COMPONENT_VERSION  ($ref)"
+      file_ok=0
+    fi
+  done < <(grep -oE "$VERSION_REF_RE" "$file" | sort -u)
+
+  if [ "$seen" -eq 0 ]; then
+    fail "$file has no component version reference; restore it or drop the file from the list"
+  elif [ "$file_ok" -eq 1 ]; then
+    ok "$file"
+  fi
+done
 
 echo
 if [ "$failures" -gt 0 ]; then

@@ -599,7 +599,7 @@
     </p>
     <ul class="facts">
       <li><b>Tooark/ci-security-scanner</b></li>
-      <li>v<b>1.0.0</b></li>
+      <li>v<b>1.1.0</b></li>
       <li>scanner <b>1.9</b></li>
       <li><b>7</b> scans</li>
       <li><b>2</b> plataformas</li>
@@ -900,7 +900,7 @@
       </p>
 
       <p>
-        Quando alguém escreve <code>uses: Tooark/ci-security-scanner@v1.0.0</code>, o GitHub baixa este
+        Quando alguém escreve <code>uses: Tooark/ci-security-scanner@v1.1.0</code>, o GitHub baixa este
         repositório e executa os passos declarados aqui <em>dentro do job de quem chamou</em>. O arquivo
         tem quatro blocos.
       </p>
@@ -1005,7 +1005,7 @@
 
 <pre><code><span class="c"># no .gitlab-ci.yml do projeto que quer ser escaneado</span>
 <span class="k">include:</span>
-  - <span class="k">remote:</span> "https://raw.githubusercontent.com/Tooark/ci-security-scanner/v1.0.0/templates/full-scan.yml"
+  - <span class="k">remote:</span> "https://raw.githubusercontent.com/Tooark/ci-security-scanner/v1.1.0/templates/full-scan.yml"
     <span class="k">inputs:</span>
       <span class="k">stage:</span> security
       <span class="k">image:</span> "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
@@ -1065,7 +1065,7 @@
           <rect x="6" y="56" width="168" height="84" rx="4" fill="var(--surface)" stroke="var(--rule)" stroke-width="1"></rect>
           <text x="90" y="42" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--accent)">1</text>
           <text x="90" y="88" text-anchor="middle" font-family="Archivo, sans-serif" font-size="14.5" font-weight="600" fill="var(--ink)">workflow do time</text>
-          <text x="90" y="108" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--ink-2)">uses: ...@v1.0.0</text>
+          <text x="90" y="108" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--ink-2)">uses: ...@v1.1.0</text>
           <text x="90" y="126" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--ink-3)">with: command, image</text>
           <line x1="174" y1="98" x2="192" y2="98" stroke="var(--rule-strong)" stroke-width="1.4" marker-end="url(#arw)"></line>
 
@@ -1170,7 +1170,7 @@
       <p>O <code>VERSION</code> é a constante única:</p>
 
 <pre><code><span class="c"># Single source of truth for versions in this repository.</span>
-COMPONENT_VERSION=1.0.0
+COMPONENT_VERSION=1.1.0
 SCANNER_IMAGE=ghcr.io/tooark/security-scanner
 SCANNER_VERSION=1.9</code></pre>
 
@@ -1462,7 +1462,7 @@ shellcheck -s bash src/run-scanner.sh scripts/check-sync.sh</code></pre>
       </div>
 
       <p class="closer">
-        Guia de onboarding · Tooark/ci-security-scanner v1.0.0 · scanner 1.9<br>
+        Guia de onboarding · Tooark/ci-security-scanner v1.1.0 · scanner 1.9<br>
         A referência autoritativa de cada input é o bloco <code>spec:inputs</code> do template correspondente.
       </p>
     </section>

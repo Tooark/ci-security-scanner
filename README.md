@@ -20,7 +20,7 @@ Input names, defaults and precedence are the same on both sides; only the
 syntax differs.
 
 New to CI pipelines? The
-[onboarding guide](https://tooark.github.io/ci-security-scanner/) walks through
+[onboarding guide](https://tooark.com/ci-security-scanner/) walks through
 every file in this repository and the reasoning behind each decision, written
 for readers who know software development but not CI. Source in
 [`docs/`](docs/).
@@ -57,7 +57,7 @@ Works on gitlab.com and on any instance that can reach
 
 ```yaml
 include:
-  - remote: "https://raw.githubusercontent.com/Tooark/ci-security-scanner/v1.0.0/templates/full-scan.yml"
+  - remote: "https://raw.githubusercontent.com/Tooark/ci-security-scanner/v1.1.0/templates/full-scan.yml"
     inputs:
       stage: test
       image: "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
@@ -72,7 +72,7 @@ version to your instance:
 
 ```yaml
 include:
-  - component: $CI_SERVER_FQDN/tooark/ci-security-scanner/full-scan@1.0.0
+  - component: $CI_SERVER_FQDN/tooark/ci-security-scanner/full-scan@1.1.0
     inputs:
       image: "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
       trivy_severity: "CRITICAL,HIGH"
@@ -85,7 +85,7 @@ include:
   with:
     fetch-depth: 0 # Betterleaks needs the full git history
 
-- uses: Tooark/ci-security-scanner@v1.0.0
+- uses: Tooark/ci-security-scanner@v1.1.0
   with:
     command: full-scan
     image: "myapp:${{ github.sha }}"
@@ -263,7 +263,7 @@ never travel as inputs. Pass them as masked CI/CD variables (GitLab) or job
 
 ```yaml
 # GitHub
-- uses: Tooark/ci-security-scanner@v1.0.0
+- uses: Tooark/ci-security-scanner@v1.1.0
   env:
     REPORT_TOKEN: ${{ secrets.REPORT_TOKEN }}
   with:

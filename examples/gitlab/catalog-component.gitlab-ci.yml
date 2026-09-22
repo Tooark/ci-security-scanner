@@ -11,7 +11,7 @@ stages:
 
 include:
   # Full combo on the default branch and on tags.
-  - component: $CI_SERVER_FQDN/tooark/ci-security-scanner/full-scan@1.0.0
+  - component: $CI_SERVER_FQDN/tooark/ci-security-scanner/full-scan@1.1.0
     inputs:
       stage: security
       image: "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
@@ -23,7 +23,7 @@ include:
         - if: $CI_COMMIT_TAG
 
   # Fast feedback on merge requests: secrets and Dockerfile lint only.
-  - component: $CI_SERVER_FQDN/tooark/ci-security-scanner/secret-scan@1.0.0
+  - component: $CI_SERVER_FQDN/tooark/ci-security-scanner/secret-scan@1.1.0
     inputs:
       job_name: "security:secrets-mr"
       stage: security
@@ -32,7 +32,7 @@ include:
       rules:
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
-  - component: $CI_SERVER_FQDN/tooark/ci-security-scanner/dockerfile-lint@1.0.0
+  - component: $CI_SERVER_FQDN/tooark/ci-security-scanner/dockerfile-lint@1.1.0
     inputs:
       job_name: "security:lint-mr"
       stage: security
