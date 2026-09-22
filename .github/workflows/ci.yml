@@ -18,7 +18,7 @@ jobs:
     name: Lint and validate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install PyYAML
         run: python3 -m pip install --quiet pyyaml
@@ -64,7 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: lint
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Betterleaks walks the git history; a shallow clone hides most of it.
           fetch-depth: 0
