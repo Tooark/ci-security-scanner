@@ -20,6 +20,11 @@ Um repositório, duas portas de entrada:
 Nomes de input, defaults e precedência são os mesmos nos dois lados; só a
 sintaxe muda.
 
+Novo em pipelines? O
+[guia de onboarding](https://tooark.github.io/ci-security-scanner/) percorre
+cada arquivo deste repositório e o porquê de cada decisão, escrito para quem
+conhece desenvolvimento de software, mas não CI. Fonte em [`docs/`](docs/).
+
 🌍 **Idiomas:** [![USA Flag](https://flagcdn.com/w20/us.png) English](README.md) · ![Brazil Flag](https://flagcdn.com/w20/br.png) **Português (este arquivo)**
 
 ---
@@ -427,6 +432,7 @@ action.yml          Composite Action do GitHub
 src/run-scanner.sh  Runner compartilhado por trás da Action
 scripts/            Validações rodadas no CI e localmente
 examples/           Pipelines prontos para copiar, nas duas plataformas
+docs/               Guia de onboarding, publicado no GitHub Pages
 VERSION             Fonte única de verdade das versões
 ```
 

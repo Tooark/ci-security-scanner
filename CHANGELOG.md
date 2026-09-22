@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Onboarding guide in `docs/`, deployed to GitHub Pages by
+  `.github/workflows/pages.yml`. It walks the repository file by file and
+  records the reasoning behind each decision, for readers who know software
+  development but not CI.
+
 ## [1.0.0] - 2026-09-21
 
 First release. Pins `ghcr.io/tooark/security-scanner:1.9`.

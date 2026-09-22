@@ -1,0 +1,55 @@
+# =============================================================================
+# ci-security-scanner :: GitHub Pages
+# -----------------------------------------------------------------------------
+# Publishes docs/ as the onboarding guide at
+# https://tooark.github.io/ci-security-scanner/.
+#
+# The artifact-based deployment needs Pages switched to the "GitHub Actions"
+# source once, under Settings > Pages. The API cannot set it, so the first run
+# fails with "Pages site not found" until someone does.
+#
+# Nothing here touches the templates or the Action; a documentation change must
+# never be able to hold up a release.
+# =============================================================================
+name: Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+# id-token: write is what lets deploy-pages prove the deployment came from this
+# workflow. contents stays read-only: the job publishes, it never commits.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time, and never cancel one in flight — a cancelled deploy
+# can leave the site serving a half-published version.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Publish the onboarding guide
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/configure-pages@v5
+
+      # docs/ is served as the site root, so docs/index.html is the landing page.
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
