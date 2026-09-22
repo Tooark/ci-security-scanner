@@ -262,7 +262,7 @@ runs:
     - name: Restore the Trivy database
       id: trivy-db
       if: ${{ steps.cache.outputs.enabled == 'true' }}
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         path: ${{ steps.cache.outputs.path }}
         key: ${{ steps.cache.outputs.key }}
@@ -323,7 +323,7 @@ runs:
     # the database on every run.
     - name: Save the Trivy database
       if: ${{ !cancelled() && steps.cache.outputs.enabled == 'true' && steps.trivy-db.outputs.cache-hit != 'true' }}
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v6
       with:
         path: ${{ steps.cache.outputs.path }}
         key: ${{ steps.cache.outputs.key }}
