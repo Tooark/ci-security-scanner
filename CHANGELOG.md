@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- The onboarding guide is bilingual. A language button beside the theme button
+  switches between Portuguese and English without reloading the page. Both
+  languages live in the same file, side by side, so they cannot drift apart the
+  way two separate files can; the choice is remembered per visitor, and a
+  first-time visitor gets whichever language their browser asks for. Without
+  JavaScript the page still renders, in Portuguese.
+
 ### Fixed
 
 - The onboarding guide no longer serves `uses: Tooark/ci-security-scanner@v1.1.0`
@@ -14,6 +23,10 @@ All notable changes to this project are documented here. The format follows
   The affected spans now carry Cloudflare's `email_off` opt-out.
 - The `[1.0.0]` and `[1.1.0]` links at the bottom of this file pointed at a
   `v1.0.0` tag that was never pushed, so both 404'd.
+- The guide serves its own favicon. The link pointed at `../media/favicon.png`,
+  which resolves above the published root — `docs/` is the site root — and only
+  appeared to work because the organization's site happens to serve an
+  identical file at that path. It also declared `image/x-icon` for a PNG.
 
 ## [1.1.0] - 2026-09-22
 
