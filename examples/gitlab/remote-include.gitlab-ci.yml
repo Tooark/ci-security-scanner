@@ -1,0 +1,61 @@
+# =============================================================================
+# Consuming ci-security-scanner from GitHub, with `include: remote:`.
+# -----------------------------------------------------------------------------
+# Works on gitlab.com and on any self-hosted instance that can reach
+# raw.githubusercontent.com. No catalog needed.
+#
+# Always pin a tag. Pointing at `main` means a pipeline can change under you.
+# =============================================================================
+stages:
+  - build
+  - security
+
+variables:
+  IMAGE: "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+
+build:
+  stage: build
+  image: docker:27
+  services:
+    - docker:27-dind
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - docker build -t "$IMAGE" .
+    - docker push "$IMAGE"
+
+include:
+  # ---------------------------------------------------------------------------
+  # Everything at once: image + source + secrets + Dockerfile lint.
+  # ---------------------------------------------------------------------------
+  - remote: "https://raw.githubusercontent.com/Tooark/ci-security-scanner/v1.0.0/templates/full-scan.yml"
+    inputs:
+      stage: security
+      image: "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+      trivy_severity: "CRITICAL,HIGH"
+      trivy_severity_fail: "CRITICAL"
+      hadolint_failure_level: "warning"
+      dockerfiles: "Dockerfile,docker/Dockerfile.worker"
+      sbom: true
+
+  # ---------------------------------------------------------------------------
+  # A second, faster job that runs on merge requests only: secrets, no image.
+  # ---------------------------------------------------------------------------
+  - remote: "https://raw.githubusercontent.com/Tooark/ci-security-scanner/v1.0.0/templates/secret-scan.yml"
+    inputs:
+      job_name: "security:secrets-mr"
+      stage: security
+      no_git: "true"
+      rules:
+        - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+# -----------------------------------------------------------------------------
+# The generated jobs are ordinary jobs: override anything the inputs do not
+# expose by redeclaring the job name.
+# -----------------------------------------------------------------------------
+"security:full-scan":
+  needs: ["build"]
+  variables:
+    # Any environment variable from the image README works here. Inputs win
+    # over these, so leave the matching input empty when you set one.
+    TRIVY_SCANNERS: "vuln,secret,misconfig,license"
+    BETTERLEAKS_REDACT: "80"

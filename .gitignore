@@ -1,0 +1,3 @@
+scan-reports/
+.cache/
+*.log

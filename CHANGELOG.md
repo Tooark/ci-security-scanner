@@ -1,0 +1,52 @@
+# Changelog
+
+All notable changes to this project are documented here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [1.0.0] - 2026-09-21
+
+First release. Pins `ghcr.io/tooark/security-scanner:1.9`.
+
+### Added
+
+- GitLab CI/CD component templates, one job each: `full-scan`, `image-scan`,
+  `filesystem-scan`, `config-scan`, `repo-scan`, `dockerfile-lint` and
+  `secret-scan`. Usable through `include: remote:` or from a CI/CD Catalog.
+- GitHub composite Action (`action.yml`) covering the same seven scans through
+  a `command` input, with `exit-code`, `reports-dir` and `report` outputs.
+- Shared precedence rule across both platforms: an empty input is never
+  forwarded, so `input > CI variable > image default` holds everywhere.
+- Secret passthrough (`TRIVY_TOKEN`, `REPORT_TOKEN`, registry credentials and
+  friends) via environment rather than inputs.
+- Trivy database caching on both platforms, skipped for the two scans that do
+  not read the database. GitLab caches `.cache/trivy` under a fixed key; GitHub
+  uses `actions/cache` with one entry per day per scanner version, saved from
+  an explicit step so a tripped failure gate still populates it.
+- `scripts/validate-templates.py` and `scripts/check-sync.sh`, which fail CI on
+  undeclared or unused inputs, broken `ARK_IN_*` wiring, and version pins that
+  drift from `VERSION`.
+- Release workflow that validates, checks the tag against `VERSION`, publishes
+  the GitHub release and moves the floating `vMAJOR` and `vMAJOR.MINOR` tags.
+- Mirror pipeline in `examples/gitlab-catalog-mirror/` that polls GitHub
+  releases on a schedule and republishes to a self-hosted CI/CD Catalog.
+- Copy-ready examples for both platforms in `examples/`.
+
+### Security
+
+- `extra_args` is split under `set -f`, so a value such as `*` is passed
+  literally instead of expanding against the files in the repository.
+- The catalog mirror hands its push token to git through a credential helper
+  rather than a remote URL, keeping it out of argv and out of git's errors.
+- The third-party `actionlint` image is pinned by digest, and Dependabot keeps
+  the remaining action references current.
+- The reports directory is tightened again once a scan finishes, limiting the
+  world-writable window the non-root container user requires.
+- Documented the disclosure paths that configuration can open: the Docker
+  socket mount, unredacted Betterleaks output, and Trivy's secret scanner
+  writing findings into an uploaded artifact.
+
+[Unreleased]: https://github.com/Tooark/ci-security-scanner/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/Tooark/ci-security-scanner/releases/tag/v1.0.0

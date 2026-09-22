@@ -1,0 +1,51 @@
+# =============================================================================
+# Consuming ci-security-scanner from a self-hosted CI/CD Catalog.
+# -----------------------------------------------------------------------------
+# Assumes the mirror project from examples/gitlab-catalog-mirror/ has published
+# at least one version. $CI_SERVER_FQDN resolves to the instance host, so this
+# snippet is portable across projects.
+# =============================================================================
+stages:
+  - build
+  - security
+
+include:
+  # Full combo on the default branch and on tags.
+  - component: $CI_SERVER_FQDN/tooark/ci-security-scanner/full-scan@1.0.0
+    inputs:
+      stage: security
+      image: "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+      trivy_severity: "CRITICAL,HIGH"
+      hadolint_failure_level: "warning"
+      tags: ["docker"]
+      rules:
+        - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+        - if: $CI_COMMIT_TAG
+
+  # Fast feedback on merge requests: secrets and Dockerfile lint only.
+  - component: $CI_SERVER_FQDN/tooark/ci-security-scanner/secret-scan@1.0.0
+    inputs:
+      job_name: "security:secrets-mr"
+      stage: security
+      no_git: "true"
+      tags: ["docker"]
+      rules:
+        - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+  - component: $CI_SERVER_FQDN/tooark/ci-security-scanner/dockerfile-lint@1.0.0
+    inputs:
+      job_name: "security:lint-mr"
+      stage: security
+      hadolint_failure_level: "warning"
+      tags: ["docker"]
+      rules:
+        - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+# -----------------------------------------------------------------------------
+# Ship reports to an internal collector. Secrets belong in masked CI/CD
+# variables, never in inputs, because input values are visible in the pipeline
+# configuration.
+# -----------------------------------------------------------------------------
+variables:
+  REPORT_URL: "https://security-hub.internal/api/reports"
+  REPORT_FAIL_ON_ERROR: "true"

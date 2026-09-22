@@ -1,0 +1,191 @@
+# =============================================================================
+# ci-security-scanner :: filesystem-scan
+# -----------------------------------------------------------------------------
+# Trivy vulnerability scan of the project source tree (lockfiles, OS packages,
+# language dependencies).
+#
+# Precedence for every tunable: input > CI/CD variable > image default.
+# Leave an input empty to keep whatever the project already sets as a variable.
+#
+# Docs: https://github.com/Tooark/ci-security-scanner
+# =============================================================================
+spec:
+  inputs:
+    # --- job shape ------------------------------------------------------------
+    job_name:
+      default: "security:filesystem-scan"
+      description: "Name of the generated job. Change it to run the job more than once."
+    stage:
+      default: "test"
+      description: "Stage the job runs in. The stage must exist in the pipeline."
+    scanner_image:
+      default: "ghcr.io/tooark/security-scanner"
+      description: "Scanner image repository."
+    scanner_version:
+      default: "1.9"
+      description: "Scanner image tag. Pin it; latest makes pipelines non-reproducible."
+    allow_failure:
+      type: boolean
+      default: false
+      description: "Let the pipeline continue when the failure gate trips."
+    rules:
+      type: array
+      default:
+        - when: on_success
+      description: "Rules for the job. Replace to control when the scan runs."
+    tags:
+      type: array
+      default: []
+      description: "Runner tags used to pick an executor."
+    timeout:
+      default: "1h"
+      description: "Job timeout."
+    # --- reports --------------------------------------------------------------
+    reports_dir:
+      default: "scan-reports"
+      description: "Directory (relative to the project dir) where reports are written."
+    artifacts_expire_in:
+      default: "7 days"
+      description: "How long the report artifacts are kept."
+    # --- what to scan ---------------------------------------------------------
+    path:
+      default: "$CI_PROJECT_DIR"
+      description: "Directory to scan."
+    # --- sbom -----------------------------------------------------------------
+    sbom:
+      type: boolean
+      default: false
+      description: "Generate an SBOM alongside the scan."
+    sbom_format:
+      default: ""
+      options: ["", "cyclonedx", "spdx-json"]
+      description: "SBOM format. Empty uses the image default (cyclonedx)."
+    # --- trivy ----------------------------------------------------------------
+    trivy_severity:
+      default: ""
+      regex: "^[A-Z,]*$"
+      description: "Severities included in the report, e.g. CRITICAL,HIGH."
+    trivy_severity_fail:
+      default: ""
+      regex: "^[A-Z,]*$"
+      description: "Severities that trip the failure gate. Image default: HIGH,CRITICAL."
+    trivy_ignore_unfixed:
+      default: ""
+      options: ["", "true", "false"]
+      description: "Drop vulnerabilities without a fix from the report."
+    trivy_ignore_unfixed_fail:
+      default: ""
+      options: ["", "true", "false"]
+      description: "Gate only on vulnerabilities that have a fix. Image default: true."
+    trivy_exit_code:
+      default: ""
+      options: ["", "0", "1"]
+      description: "Set to 0 to disable the Trivy gate entirely."
+    trivy_format:
+      default: ""
+      options: ["", "json", "sarif", "table", "cyclonedx", "spdx-json"]
+      description: "Trivy report format."
+    trivy_scanners:
+      default: ""
+      description: "Trivy scanners, e.g. vuln,secret,misconfig,license."
+    trivy_timeout:
+      default: ""
+      description: "Trivy timeout, e.g. 15m."
+    trivy_server:
+      default: ""
+      description: "Trivy server endpoint. Set TRIVY_TOKEN as a masked CI/CD variable."
+    trivy_ignorefile:
+      default: ""
+      description: "Path to a .trivyignore file."
+    # --- webhook --------------------------------------------------------------
+    report_url:
+      default: ""
+      description: "Comma-separated webhook URLs. Set REPORT_TOKEN as a masked CI/CD variable."
+    report_fail_on_error:
+      default: ""
+      options: ["", "true", "false"]
+      description: "Fail the job when the webhook upload fails."
+    # --- escape hatch ---------------------------------------------------------
+    extra_args:
+      default: ""
+      description: "Extra flags forwarded to Trivy after the -- separator. Word-split by the shell."
+---
+"$[[ inputs.job_name ]]":
+  stage: $[[ inputs.stage ]]
+  image:
+    name: "$[[ inputs.scanner_image ]]:$[[ inputs.scanner_version ]]"
+    # The image ships an entrypoint that execs ark-tools directly. GitLab Runner
+    # keeps the image entrypoint and attaches a shell to it, so it must be cleared.
+    entrypoint: [""]
+  tags: $[[ inputs.tags ]]
+  timeout: $[[ inputs.timeout ]]
+  allow_failure: $[[ inputs.allow_failure ]]
+  rules: $[[ inputs.rules ]]
+  cache:
+    - key: "ark-trivy-db"
+      paths:
+        - .cache/trivy
+  variables:
+    TRIVY_CACHE_DIR: "$CI_PROJECT_DIR/.cache/trivy"
+    REPORT_DIR: "$CI_PROJECT_DIR/$[[ inputs.reports_dir ]]"
+    # Inputs are staged as ARK_IN_* and only exported when non-empty, so an empty
+    # input never clobbers a variable the project set globally.
+    ARK_IN_PATH: "$[[ inputs.path ]]"
+    ARK_IN_SBOM: "$[[ inputs.sbom ]]"
+    ARK_IN_EXTRA_ARGS: "$[[ inputs.extra_args ]]"
+    ARK_IN_SBOM_FORMAT: "$[[ inputs.sbom_format ]]"
+    ARK_IN_TRIVY_SEVERITY: "$[[ inputs.trivy_severity ]]"
+    ARK_IN_TRIVY_SEVERITY_FAIL: "$[[ inputs.trivy_severity_fail ]]"
+    ARK_IN_TRIVY_IGNORE_UNFIXED: "$[[ inputs.trivy_ignore_unfixed ]]"
+    ARK_IN_TRIVY_IGNORE_UNFIXED_FAIL: "$[[ inputs.trivy_ignore_unfixed_fail ]]"
+    ARK_IN_TRIVY_EXIT_CODE: "$[[ inputs.trivy_exit_code ]]"
+    ARK_IN_TRIVY_FORMAT: "$[[ inputs.trivy_format ]]"
+    ARK_IN_TRIVY_SCANNERS: "$[[ inputs.trivy_scanners ]]"
+    ARK_IN_TRIVY_TIMEOUT: "$[[ inputs.trivy_timeout ]]"
+    ARK_IN_TRIVY_SERVER: "$[[ inputs.trivy_server ]]"
+    ARK_IN_TRIVY_IGNOREFILE: "$[[ inputs.trivy_ignorefile ]]"
+    ARK_IN_REPORT_URL: "$[[ inputs.report_url ]]"
+    ARK_IN_REPORT_FAIL_ON_ERROR: "$[[ inputs.report_fail_on_error ]]"
+  before_script:
+    - |
+      echo "[ci-security-scanner] filesystem-scan"
+      ark_apply_inputs() {
+        for _name in "$@"; do
+          eval "_value=\${ARK_IN_${_name}:-}"
+          if [ -n "${_value}" ]; then
+            export "${_name}=${_value}"
+            echo "  ${_name}=${_value}"
+          fi
+        done
+      }
+      ark_apply_inputs \
+        SBOM_FORMAT \
+        TRIVY_SEVERITY TRIVY_SEVERITY_FAIL TRIVY_IGNORE_UNFIXED TRIVY_IGNORE_UNFIXED_FAIL \
+        TRIVY_EXIT_CODE TRIVY_FORMAT TRIVY_SCANNERS TRIVY_TIMEOUT TRIVY_SERVER TRIVY_IGNOREFILE \
+        REPORT_URL REPORT_FAIL_ON_ERROR
+      mkdir -p "$REPORT_DIR" "$TRIVY_CACHE_DIR"
+  script:
+    - |
+      set -- filesystem-scan
+      if [ "${ARK_IN_SBOM:-false}" = "true" ]; then
+        set -- "$@" --sbom
+      fi
+      if [ -n "${ARK_IN_PATH:-}" ]; then
+        set -- "$@" "$ARK_IN_PATH"
+      fi
+      if [ -n "${ARK_IN_EXTRA_ARGS:-}" ]; then
+        # Word splitting is intentional here (extra_args is a flag string, not
+        # one argument) but pathname expansion is not: -f stops a value such as
+        # '*' from expanding against the files in the repository.
+        set -f
+        # shellcheck disable=SC2086
+        set -- "$@" -- $ARK_IN_EXTRA_ARGS
+        set +f
+      fi
+      echo "[ci-security-scanner] ark-tools $*"
+      ark-tools "$@"
+  artifacts:
+    when: always
+    expire_in: $[[ inputs.artifacts_expire_in ]]
+    paths:
+      - "$[[ inputs.reports_dir ]]/"

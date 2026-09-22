@@ -1,0 +1,114 @@
+# =============================================================================
+# Consuming ci-security-scanner as a GitHub Action.
+# -----------------------------------------------------------------------------
+# Copy into .github/workflows/ in the project you want to scan.
+# Always pin a tag or a commit SHA.
+# =============================================================================
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Fast feedback on pull requests: secrets and Dockerfile lint, no image build.
+  # ---------------------------------------------------------------------------
+  quick:
+    name: Secrets and lint
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Betterleaks walks the git history; a shallow clone hides most of it.
+          fetch-depth: 0
+
+      - name: Secret scan
+        uses: Tooark/ci-security-scanner@v1.0.0
+        with:
+          command: secret-scan
+          artifact-name: secret-scan-reports
+
+      - name: Dockerfile lint
+        uses: Tooark/ci-security-scanner@v1.0.0
+        with:
+          command: dockerfile-lint
+          dockerfile: Dockerfile
+          hadolint-failure-level: warning
+          artifact-name: dockerfile-lint-reports
+
+  # ---------------------------------------------------------------------------
+  # Full combo against the image built in this job.
+  # ---------------------------------------------------------------------------
+  full:
+    name: Full scan
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Expressions reach `run:` through env, never spliced into the script.
+      # github.sha is harmless, but the habit is what keeps an attacker-controlled
+      # value (a branch or PR title) from becoming a command later.
+      - name: Build the image
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: docker build -t "myapp:$IMAGE_TAG" .
+
+      - name: Full security scan
+        id: scan
+        uses: Tooark/ci-security-scanner@v1.0.0
+        env:
+          # Secrets travel through env, never through inputs.
+          REPORT_TOKEN: ${{ secrets.REPORT_TOKEN }}
+        with:
+          command: full-scan
+          image: "myapp:${{ github.sha }}"
+          # The image was built on this runner, so Trivy needs the daemon.
+          docker-socket: "true"
+          trivy-severity: CRITICAL,HIGH
+          trivy-severity-fail: CRITICAL
+          hadolint-failure-level: warning
+          sbom: "true"
+          report-url: https://security-hub.example.com/api/reports
+          report-fail-on-error: "true"
+
+      - name: Show where the report landed
+        if: always()
+        env:
+          REPORT: ${{ steps.scan.outputs.report }}
+          EXIT_CODE: ${{ steps.scan.outputs.exit-code }}
+        run: echo "report=$REPORT exit=$EXIT_CODE"
+
+  # ---------------------------------------------------------------------------
+  # Report instead of blocking: soft-fail turns the gate into an output you can
+  # branch on.
+  # ---------------------------------------------------------------------------
+  advisory:
+    name: Advisory scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Filesystem scan
+        id: fs
+        uses: Tooark/ci-security-scanner@v1.0.0
+        with:
+          command: filesystem-scan
+          soft-fail: "true"
+          trivy-severity: CRITICAL,HIGH
+
+      - name: Comment when the gate would have failed
+        if: steps.fs.outputs.exit-code != '0'
+        env:
+          EXIT_CODE: ${{ steps.fs.outputs.exit-code }}
+        run: echo "::warning::vulnerabilities found (exit $EXIT_CODE)"

@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint and validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PyYAML
+        run: python3 -m pip install --quiet pyyaml
+
+      - name: Parse every YAML file
+        run: |
+          python3 - <<'PY'
+          import pathlib, sys, yaml
+
+          failed = False
+          for path in sorted(pathlib.Path(".").rglob("*.yml")):
+              if ".git" in path.parts:
+                  continue
+              try:
+                  list(yaml.safe_load_all(path.read_text(encoding="utf-8")))
+              except yaml.YAMLError as exc:
+                  failed = True
+                  print(f"FAIL {path}: {exc}")
+              else:
+                  print(f"ok   {path}")
+          sys.exit(1 if failed else 0)
+          PY
+
+      - name: Validate GitLab component templates
+        run: python3 scripts/validate-templates.py
+
+      - name: Check version pinning and input parity
+        run: bash scripts/check-sync.sh
+
+      - name: ShellCheck
+        run: shellcheck -s bash src/run-scanner.sh scripts/check-sync.sh
+
+      # Pinned by digest: a third-party image runs with this job's context, and
+      # a mutable tag would let it change without a commit here. This is
+      # rhysd/actionlint:1.7.12.
+      - name: Actionlint
+        uses: docker://rhysd/actionlint@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
+        with:
+          args: -color
+
+  self-scan:
+    name: Self scan
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Betterleaks walks the git history; a shallow clone hides most of it.
+          fetch-depth: 0
+
+      # Dogfooding: the action in this repo scans this repo.
+      - name: Scan this repository
+        uses: ./
+        with:
+          command: secret-scan
+          artifact-name: self-scan-reports
+
+      - name: Scan this repository for vulnerable dependencies
+        uses: ./
+        with:
+          command: filesystem-scan
+          trivy-severity: CRITICAL,HIGH
+          artifact-name: self-scan-fs-reports

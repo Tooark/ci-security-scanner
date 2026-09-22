@@ -1,0 +1,67 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Publish release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install PyYAML
+        run: python3 -m pip install --quiet pyyaml
+
+      - name: Validate GitLab component templates
+        run: python3 scripts/validate-templates.py
+
+      - name: Check version pinning and input parity
+        run: bash scripts/check-sync.sh
+
+      - name: ShellCheck
+        run: shellcheck -s bash src/run-scanner.sh scripts/check-sync.sh
+
+      # The tag is what downstream consumers pin, so it must agree with the
+      # version recorded in the repository.
+      - name: Check the tag matches VERSION
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          declared="$(grep -E '^COMPONENT_VERSION=' VERSION | cut -d= -f2-)"
+          echo "tag=$tag VERSION=$declared"
+          if [ "$tag" != "$declared" ]; then
+            echo "::error::tag v$tag does not match COMPONENT_VERSION=$declared in VERSION"
+            exit 1
+          fi
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            --verify-tag
+
+      # Floating tags let consumers track a major or minor line without
+      # rewriting every pipeline on each patch.
+      - name: Move the floating major and minor tags
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          major="v${version%%.*}"
+          minor="v$(echo "$version" | cut -d. -f1,2)"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          for alias in "$major" "$minor"; do
+            echo "moving $alias -> $GITHUB_REF_NAME"
+            git tag -f "$alias" "$GITHUB_REF_NAME"
+            git push -f origin "refs/tags/$alias"
+          done

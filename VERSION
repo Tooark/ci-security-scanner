@@ -1,0 +1,6 @@
+# Single source of truth for versions in this repository.
+# scripts/check-version-sync.sh enforces that every template and action.yml
+# pins exactly SCANNER_IMAGE:SCANNER_VERSION.
+COMPONENT_VERSION=1.0.0
+SCANNER_IMAGE=ghcr.io/tooark/security-scanner
+SCANNER_VERSION=1.9

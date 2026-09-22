@@ -1,0 +1,265 @@
+# =============================================================================
+# ci-security-scanner :: full-scan
+# -----------------------------------------------------------------------------
+# Runs Trivy (image + source), Betterleaks (secrets) and Hadolint (Dockerfile
+# lint) in a single job and consolidates everything into one
+# ark-report-tools v1.2 envelope ($REPORT_DIR/full-scan-report.json).
+#
+# Precedence for every tunable: input > CI/CD variable > image default.
+# Leave an input empty to keep whatever the project already sets as a variable.
+#
+# Docs: https://github.com/Tooark/ci-security-scanner
+# =============================================================================
+spec:
+  inputs:
+    # --- job shape ------------------------------------------------------------
+    job_name:
+      default: "security:full-scan"
+      description: "Name of the generated job. Change it to run the job more than once."
+    stage:
+      default: "test"
+      description: "Stage the job runs in. The stage must exist in the pipeline."
+    scanner_image:
+      default: "ghcr.io/tooark/security-scanner"
+      description: "Scanner image repository."
+    scanner_version:
+      default: "1.9"
+      description: "Scanner image tag. Pin it; latest makes pipelines non-reproducible."
+    allow_failure:
+      type: boolean
+      default: false
+      description: "Let the pipeline continue when a failure gate trips."
+    rules:
+      type: array
+      default:
+        - when: on_success
+      description: "Rules for the job. Replace to control when the scan runs."
+    tags:
+      type: array
+      default: []
+      description: "Runner tags used to pick an executor."
+    timeout:
+      default: "1h"
+      description: "Job timeout."
+    # --- reports --------------------------------------------------------------
+    reports_dir:
+      default: "scan-reports"
+      description: "Directory (relative to the project dir) where reports are written."
+    artifacts_expire_in:
+      default: "7 days"
+      description: "How long the report artifacts are kept."
+    # --- what to scan ---------------------------------------------------------
+    image:
+      default: ""
+      description: "Container image to scan. When empty the image step is skipped."
+    scan_path:
+      default: "$CI_PROJECT_DIR"
+      description: "Project path scanned for vulnerabilities, secrets and Dockerfiles."
+    dockerfiles:
+      default: "Dockerfile"
+      description: "Comma-separated Dockerfiles to lint, relative to scan_path."
+    scan_mode:
+      default: "fs"
+      options: ["fs", "repo"]
+      description: "Trivy source scan mode."
+    skip_image:
+      default: ""
+      options: ["", "true", "false"]
+      description: "Skip the Trivy image step."
+    skip_lint:
+      default: ""
+      options: ["", "true", "false"]
+      description: "Skip the Hadolint step."
+    skip_secrets:
+      default: ""
+      options: ["", "true", "false"]
+      description: "Skip the Betterleaks step."
+    # --- sbom -----------------------------------------------------------------
+    sbom:
+      type: boolean
+      default: false
+      description: "Generate an SBOM alongside the image scan."
+    sbom_format:
+      default: ""
+      options: ["", "cyclonedx", "spdx-json"]
+      description: "SBOM format. Empty uses the image default (cyclonedx)."
+    # --- trivy ----------------------------------------------------------------
+    trivy_severity:
+      default: ""
+      regex: "^[A-Z,]*$"
+      description: "Severities included in the report, e.g. CRITICAL,HIGH."
+    trivy_severity_fail:
+      default: ""
+      regex: "^[A-Z,]*$"
+      description: "Severities that trip the failure gate. Image default: HIGH,CRITICAL."
+    trivy_ignore_unfixed:
+      default: ""
+      options: ["", "true", "false"]
+      description: "Drop vulnerabilities without a fix from the report."
+    trivy_ignore_unfixed_fail:
+      default: ""
+      options: ["", "true", "false"]
+      description: "Gate only on vulnerabilities that have a fix. Image default: true."
+    trivy_exit_code:
+      default: ""
+      options: ["", "0", "1"]
+      description: "Set to 0 to disable the Trivy gate entirely."
+    trivy_format:
+      default: ""
+      options: ["", "json", "sarif", "table", "cyclonedx", "spdx-json"]
+      description: "Trivy report format."
+    trivy_scanners:
+      default: ""
+      description: "Trivy scanners, e.g. vuln,secret,misconfig,license."
+    trivy_timeout:
+      default: ""
+      description: "Trivy timeout, e.g. 15m."
+    trivy_server:
+      default: ""
+      description: "Trivy server endpoint. Set TRIVY_TOKEN as a masked CI/CD variable."
+    trivy_ignorefile:
+      default: ""
+      description: "Path to a .trivyignore file."
+    # --- hadolint -------------------------------------------------------------
+    hadolint_failure_level:
+      default: ""
+      options: ["", "error", "warning", "info", "style", "none"]
+      description: "Lowest Hadolint level that fails the job. Image default: error."
+    hadolint_config:
+      default: ""
+      description: "Path to a .hadolint.yaml file."
+    hadolint_format:
+      default: ""
+      options: ["", "json", "tty", "sarif"]
+      description: "Hadolint report format."
+    # --- betterleaks ----------------------------------------------------------
+    betterleaks_fail_on_findings:
+      default: ""
+      options: ["", "true", "false"]
+      description: "Fail the job when a secret is detected. Image default: true."
+    betterleaks_redact:
+      default: ""
+      description: "Percentage of each secret masked in the report (0-100). Image default: 100."
+    betterleaks_config:
+      default: ""
+      description: "Path to a .betterleaks.toml file."
+    betterleaks_baseline:
+      default: ""
+      description: "Path to a betterleaks-baseline.json file."
+    # --- webhook --------------------------------------------------------------
+    report_url:
+      default: ""
+      description: "Comma-separated webhook URLs. Set REPORT_TOKEN as a masked CI/CD variable."
+    report_fail_on_error:
+      default: ""
+      options: ["", "true", "false"]
+      description: "Fail the job when the webhook upload fails."
+    # --- escape hatch ---------------------------------------------------------
+    extra_args:
+      default: ""
+      description: "Extra flags forwarded to Trivy after the -- separator. Word-split by the shell."
+    git_depth:
+      default: "0"
+      description: "Clone depth. Keep 0 so Betterleaks can walk the full git history."
+---
+"$[[ inputs.job_name ]]":
+  stage: $[[ inputs.stage ]]
+  image:
+    name: "$[[ inputs.scanner_image ]]:$[[ inputs.scanner_version ]]"
+    # The image ships an entrypoint that execs ark-tools directly. GitLab Runner
+    # keeps the image entrypoint and attaches a shell to it, so it must be cleared.
+    entrypoint: [""]
+  tags: $[[ inputs.tags ]]
+  timeout: $[[ inputs.timeout ]]
+  allow_failure: $[[ inputs.allow_failure ]]
+  rules: $[[ inputs.rules ]]
+  cache:
+    - key: "ark-trivy-db"
+      paths:
+        - .cache/trivy
+  variables:
+    GIT_DEPTH: "$[[ inputs.git_depth ]]"
+    TRIVY_CACHE_DIR: "$CI_PROJECT_DIR/.cache/trivy"
+    REPORT_DIR: "$CI_PROJECT_DIR/$[[ inputs.reports_dir ]]"
+    # Inputs are staged as ARK_IN_* and only exported when non-empty, so an empty
+    # input never clobbers a variable the project set globally.
+    ARK_IN_IMAGE: "$[[ inputs.image ]]"
+    ARK_IN_SBOM: "$[[ inputs.sbom ]]"
+    ARK_IN_EXTRA_ARGS: "$[[ inputs.extra_args ]]"
+    ARK_IN_FULL_SCAN_PATH: "$[[ inputs.scan_path ]]"
+    ARK_IN_FULL_SCAN_DOCKERFILES: "$[[ inputs.dockerfiles ]]"
+    ARK_IN_FULL_SCAN_MODE: "$[[ inputs.scan_mode ]]"
+    ARK_IN_FULL_SCAN_SKIP_IMAGE: "$[[ inputs.skip_image ]]"
+    ARK_IN_FULL_SCAN_SKIP_LINT: "$[[ inputs.skip_lint ]]"
+    ARK_IN_FULL_SCAN_SKIP_SECRETS: "$[[ inputs.skip_secrets ]]"
+    ARK_IN_SBOM_FORMAT: "$[[ inputs.sbom_format ]]"
+    ARK_IN_TRIVY_SEVERITY: "$[[ inputs.trivy_severity ]]"
+    ARK_IN_TRIVY_SEVERITY_FAIL: "$[[ inputs.trivy_severity_fail ]]"
+    ARK_IN_TRIVY_IGNORE_UNFIXED: "$[[ inputs.trivy_ignore_unfixed ]]"
+    ARK_IN_TRIVY_IGNORE_UNFIXED_FAIL: "$[[ inputs.trivy_ignore_unfixed_fail ]]"
+    ARK_IN_TRIVY_EXIT_CODE: "$[[ inputs.trivy_exit_code ]]"
+    ARK_IN_TRIVY_FORMAT: "$[[ inputs.trivy_format ]]"
+    ARK_IN_TRIVY_SCANNERS: "$[[ inputs.trivy_scanners ]]"
+    ARK_IN_TRIVY_TIMEOUT: "$[[ inputs.trivy_timeout ]]"
+    ARK_IN_TRIVY_SERVER: "$[[ inputs.trivy_server ]]"
+    ARK_IN_TRIVY_IGNOREFILE: "$[[ inputs.trivy_ignorefile ]]"
+    ARK_IN_HADOLINT_FAILURE_LEVEL: "$[[ inputs.hadolint_failure_level ]]"
+    ARK_IN_HADOLINT_CONFIG: "$[[ inputs.hadolint_config ]]"
+    ARK_IN_HADOLINT_FORMAT: "$[[ inputs.hadolint_format ]]"
+    ARK_IN_BETTERLEAKS_FAIL_ON_FINDINGS: "$[[ inputs.betterleaks_fail_on_findings ]]"
+    ARK_IN_BETTERLEAKS_REDACT: "$[[ inputs.betterleaks_redact ]]"
+    ARK_IN_BETTERLEAKS_CONFIG: "$[[ inputs.betterleaks_config ]]"
+    ARK_IN_BETTERLEAKS_BASELINE: "$[[ inputs.betterleaks_baseline ]]"
+    ARK_IN_REPORT_URL: "$[[ inputs.report_url ]]"
+    ARK_IN_REPORT_FAIL_ON_ERROR: "$[[ inputs.report_fail_on_error ]]"
+  before_script:
+    - |
+      echo "[ci-security-scanner] full-scan"
+      ark_apply_inputs() {
+        for _name in "$@"; do
+          eval "_value=\${ARK_IN_${_name}:-}"
+          if [ -n "${_value}" ]; then
+            export "${_name}=${_value}"
+            echo "  ${_name}=${_value}"
+          fi
+        done
+      }
+      ark_apply_inputs \
+        FULL_SCAN_PATH FULL_SCAN_DOCKERFILES FULL_SCAN_MODE \
+        FULL_SCAN_SKIP_IMAGE FULL_SCAN_SKIP_LINT FULL_SCAN_SKIP_SECRETS \
+        SBOM_FORMAT \
+        TRIVY_SEVERITY TRIVY_SEVERITY_FAIL TRIVY_IGNORE_UNFIXED TRIVY_IGNORE_UNFIXED_FAIL \
+        TRIVY_EXIT_CODE TRIVY_FORMAT TRIVY_SCANNERS TRIVY_TIMEOUT TRIVY_SERVER TRIVY_IGNOREFILE \
+        HADOLINT_FAILURE_LEVEL HADOLINT_CONFIG HADOLINT_FORMAT \
+        BETTERLEAKS_FAIL_ON_FINDINGS BETTERLEAKS_REDACT BETTERLEAKS_CONFIG BETTERLEAKS_BASELINE \
+        REPORT_URL REPORT_FAIL_ON_ERROR
+      if [ -z "${ARK_IN_IMAGE:-}" ] && [ -z "${FULL_SCAN_SKIP_IMAGE:-}" ]; then
+        export FULL_SCAN_SKIP_IMAGE="true"
+        echo "  no image input -> FULL_SCAN_SKIP_IMAGE=true"
+      fi
+      mkdir -p "$REPORT_DIR" "$TRIVY_CACHE_DIR"
+  script:
+    - |
+      set -- full-scan
+      if [ -n "${ARK_IN_IMAGE:-}" ]; then
+        set -- "$@" "$ARK_IN_IMAGE"
+      fi
+      if [ "${ARK_IN_SBOM:-false}" = "true" ]; then
+        set -- "$@" --sbom
+      fi
+      if [ -n "${ARK_IN_EXTRA_ARGS:-}" ]; then
+        # Word splitting is intentional here (extra_args is a flag string, not
+        # one argument) but pathname expansion is not: -f stops a value such as
+        # '*' from expanding against the files in the repository.
+        set -f
+        # shellcheck disable=SC2086
+        set -- "$@" -- $ARK_IN_EXTRA_ARGS
+        set +f
+      fi
+      echo "[ci-security-scanner] ark-tools $*"
+      ark-tools "$@"
+  artifacts:
+    when: always
+    expire_in: $[[ inputs.artifacts_expire_in ]]
+    paths:
+      - "$[[ inputs.reports_dir ]]/"

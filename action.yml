@@ -1,0 +1,338 @@
+# =============================================================================
+# ci-security-scanner :: GitHub Action
+# -----------------------------------------------------------------------------
+# Runs Trivy, Hadolint and Betterleaks through the Tooark security-scanner
+# image. Input names and semantics mirror the GitLab templates in templates/.
+#
+# Precedence for every tunable: input > workflow env > image default.
+# Leave an input empty to keep whatever the workflow already sets as env.
+#
+# Requires a Linux runner with Docker available.
+# =============================================================================
+name: "Tooark Security Scanner"
+description: "Trivy, Hadolint and Betterleaks in one job, with a consolidated ark-report-tools report."
+author: "Tooark"
+
+branding:
+  icon: "shield"
+  color: "blue"
+
+inputs:
+  # --- what to run ------------------------------------------------------------
+  command:
+    description: "Scan to run: full-scan, image-scan, filesystem-scan, config-scan, repo-scan, dockerfile-lint or secret-scan."
+    required: false
+    default: "full-scan"
+  image:
+    description: "Container image to scan. Required for image-scan; optional for full-scan (empty skips the image step)."
+    required: false
+    default: ""
+  path:
+    description: "Directory to scan, relative to the workspace. Used by full-scan, filesystem-scan, config-scan and secret-scan."
+    required: false
+    default: "."
+  target:
+    description: "Local path or remote repository URL scanned by repo-scan."
+    required: false
+    default: ""
+  dockerfile:
+    description: "Dockerfile linted by dockerfile-lint, relative to the workspace."
+    required: false
+    default: ""
+  dockerfiles:
+    description: "Comma-separated Dockerfiles linted by full-scan, relative to path."
+    required: false
+    default: ""
+  scan-mode:
+    description: "Source scan mode used by full-scan: fs or repo."
+    required: false
+    default: ""
+  skip-image:
+    description: "Skip the Trivy image step of full-scan (true/false)."
+    required: false
+    default: ""
+  skip-lint:
+    description: "Skip the Hadolint step of full-scan (true/false)."
+    required: false
+    default: ""
+  skip-secrets:
+    description: "Skip the Betterleaks step of full-scan (true/false)."
+    required: false
+    default: ""
+  no-git:
+    description: "For secret-scan, scan only the working tree and skip git history (true/false)."
+    required: false
+    default: ""
+
+  # --- image ------------------------------------------------------------------
+  scanner-image:
+    description: "Scanner image repository."
+    required: false
+    default: "ghcr.io/tooark/security-scanner"
+  scanner-version:
+    description: "Scanner image tag. Pin it; latest makes workflows non-reproducible."
+    required: false
+    default: "1.9"
+
+  # --- sbom -------------------------------------------------------------------
+  sbom:
+    description: "Generate an SBOM alongside the scan (true/false)."
+    required: false
+    default: "false"
+  sbom-format:
+    description: "SBOM format: cyclonedx or spdx-json. Empty uses the image default."
+    required: false
+    default: ""
+
+  # --- trivy ------------------------------------------------------------------
+  trivy-severity:
+    description: "Severities included in the report, e.g. CRITICAL,HIGH."
+    required: false
+    default: ""
+  trivy-severity-fail:
+    description: "Severities that trip the failure gate. Image default: HIGH,CRITICAL."
+    required: false
+    default: ""
+  trivy-ignore-unfixed:
+    description: "Drop vulnerabilities without a fix from the report (true/false)."
+    required: false
+    default: ""
+  trivy-ignore-unfixed-fail:
+    description: "Gate only on vulnerabilities that have a fix (true/false). Image default: true."
+    required: false
+    default: ""
+  trivy-exit-code:
+    description: "Set to 0 to disable the Trivy gate entirely."
+    required: false
+    default: ""
+  trivy-format:
+    description: "Trivy report format: json, sarif, table, cyclonedx or spdx-json."
+    required: false
+    default: ""
+  trivy-scanners:
+    description: "Trivy scanners, e.g. vuln,secret,misconfig,license."
+    required: false
+    default: ""
+  trivy-timeout:
+    description: "Trivy timeout, e.g. 15m."
+    required: false
+    default: ""
+  trivy-server:
+    description: "Trivy server endpoint. Pass TRIVY_TOKEN through the job env, not as an input."
+    required: false
+    default: ""
+  trivy-ignorefile:
+    description: "Path to a .trivyignore file, relative to the workspace."
+    required: false
+    default: ""
+
+  # --- hadolint ---------------------------------------------------------------
+  hadolint-failure-level:
+    description: "Lowest Hadolint level that fails the step: error, warning, info, style or none."
+    required: false
+    default: ""
+  hadolint-config:
+    description: "Path to a .hadolint.yaml file."
+    required: false
+    default: ""
+  hadolint-format:
+    description: "Hadolint report format: json, tty or sarif."
+    required: false
+    default: ""
+  hadolint-log-max-findings:
+    description: "Maximum findings itemized in the log. Image default: 20."
+    required: false
+    default: ""
+
+  # --- betterleaks ------------------------------------------------------------
+  betterleaks-baseline:
+    description: "Path to a betterleaks-baseline.json file with accepted findings."
+    required: false
+    default: ""
+  betterleaks-config:
+    description: "Path to a .betterleaks.toml file."
+    required: false
+    default: ""
+  betterleaks-format:
+    description: "Betterleaks report format: json, csv, junit, sarif or template."
+    required: false
+    default: ""
+  betterleaks-fail-on-findings:
+    description: "Fail the step when a secret is detected (true/false). Image default: true."
+    required: false
+    default: ""
+  betterleaks-redact:
+    description: "Percentage of each secret masked in the report (0-100). Image default: 100."
+    required: false
+    default: ""
+  betterleaks-log-max-findings:
+    description: "Maximum findings itemized in the log. Image default: 20."
+    required: false
+    default: ""
+
+  # --- webhook ----------------------------------------------------------------
+  report-url:
+    description: "Comma-separated webhook URLs. Pass REPORT_TOKEN through the job env, not as an input."
+    required: false
+    default: ""
+  report-fail-on-error:
+    description: "Fail the step when the webhook upload fails (true/false)."
+    required: false
+    default: ""
+
+  # --- runner behaviour -------------------------------------------------------
+  reports-dir:
+    description: "Directory where reports are written, relative to the workspace."
+    required: false
+    default: "scan-reports"
+  docker-socket:
+    description: "Mount /var/run/docker.sock so image-scan can read images built earlier in the job (true/false)."
+    required: false
+    default: "false"
+  trivy-cache:
+    description: "Cache the Trivy vulnerability database under RUNNER_TEMP (true/false)."
+    required: false
+    default: "true"
+  soft-fail:
+    description: "Report the exit code as an output instead of failing the step (true/false)."
+    required: false
+    default: "false"
+  extra-args:
+    description: "Extra flags forwarded to the underlying tool after the -- separator."
+    required: false
+    default: ""
+  upload-artifact:
+    description: "Upload the reports directory as a workflow artifact (true/false)."
+    required: false
+    default: "true"
+  artifact-name:
+    description: "Name of the uploaded artifact."
+    required: false
+    default: "security-reports"
+  artifact-retention-days:
+    description: "Retention in days for the uploaded artifact."
+    required: false
+    default: "7"
+
+outputs:
+  exit-code:
+    description: "Exit code of the scan. Non-zero means a failure gate tripped."
+    value: ${{ steps.scan.outputs.exit-code }}
+  reports-dir:
+    description: "Absolute path of the directory holding the reports."
+    value: ${{ steps.scan.outputs.reports-dir }}
+  report:
+    description: "Absolute path of the consolidated full-scan report."
+    value: ${{ steps.scan.outputs.report }}
+
+runs:
+  using: "composite"
+  steps:
+    # RUNNER_TEMP is wiped when the job ends, so the mount alone only helps
+    # across steps. actions/cache is what carries the database between runs.
+    - id: cache
+      shell: bash
+      env:
+        ARK_COMMAND: ${{ inputs.command }}
+        ARK_TRIVY_CACHE: ${{ inputs.trivy-cache }}
+        ARK_SCANNER_VERSION: ${{ inputs.scanner-version }}
+      run: |
+        # Hadolint and Betterleaks never touch the Trivy database.
+        enabled=false
+        case "$ARK_COMMAND" in
+          dockerfile-lint | secret-scan) ;;
+          *)
+            if [ "$ARK_TRIVY_CACHE" = "true" ]; then
+              enabled=true
+            fi
+            ;;
+        esac
+
+        # One entry per day. A miss falls back to the previous day, so Trivy
+        # refreshes an existing database instead of downloading a whole one.
+        # The scanner version is in the key because a Trivy upgrade can expect
+        # a different database schema.
+        {
+          echo "enabled=$enabled"
+          echo "path=$RUNNER_TEMP/ark-trivy-cache"
+          echo "key=ark-trivy-db-$ARK_SCANNER_VERSION-$(date -u +%Y-%m-%d)"
+          echo "restore-keys=ark-trivy-db-$ARK_SCANNER_VERSION-"
+        } >>"$GITHUB_OUTPUT"
+
+    - name: Restore the Trivy database
+      id: trivy-db
+      if: ${{ steps.cache.outputs.enabled == 'true' }}
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ steps.cache.outputs.path }}
+        key: ${{ steps.cache.outputs.key }}
+        restore-keys: ${{ steps.cache.outputs.restore-keys }}
+
+    - id: scan
+      shell: bash
+      env:
+        ARK_COMMAND: ${{ inputs.command }}
+        ARK_SCANNER_IMAGE: ${{ inputs.scanner-image }}
+        ARK_SCANNER_VERSION: ${{ inputs.scanner-version }}
+        ARK_REPORTS_DIR: ${{ inputs.reports-dir }}
+        ARK_DOCKER_SOCKET: ${{ inputs.docker-socket }}
+        ARK_TRIVY_CACHE: ${{ inputs.trivy-cache }}
+        ARK_SOFT_FAIL: ${{ inputs.soft-fail }}
+        # Inputs are staged as ARK_IN_* and only forwarded when non-empty, so an
+        # empty input never clobbers a variable the workflow set as env.
+        ARK_IN_IMAGE: ${{ inputs.image }}
+        ARK_IN_PATH: ${{ inputs.path }}
+        ARK_IN_TARGET: ${{ inputs.target }}
+        ARK_IN_DOCKERFILE: ${{ inputs.dockerfile }}
+        ARK_IN_NO_GIT: ${{ inputs.no-git }}
+        ARK_IN_SBOM: ${{ inputs.sbom }}
+        ARK_IN_EXTRA_ARGS: ${{ inputs.extra-args }}
+        ARK_IN_FULL_SCAN_DOCKERFILES: ${{ inputs.dockerfiles }}
+        ARK_IN_FULL_SCAN_MODE: ${{ inputs.scan-mode }}
+        ARK_IN_FULL_SCAN_SKIP_IMAGE: ${{ inputs.skip-image }}
+        ARK_IN_FULL_SCAN_SKIP_LINT: ${{ inputs.skip-lint }}
+        ARK_IN_FULL_SCAN_SKIP_SECRETS: ${{ inputs.skip-secrets }}
+        ARK_IN_SBOM_FORMAT: ${{ inputs.sbom-format }}
+        ARK_IN_TRIVY_SEVERITY: ${{ inputs.trivy-severity }}
+        ARK_IN_TRIVY_SEVERITY_FAIL: ${{ inputs.trivy-severity-fail }}
+        ARK_IN_TRIVY_IGNORE_UNFIXED: ${{ inputs.trivy-ignore-unfixed }}
+        ARK_IN_TRIVY_IGNORE_UNFIXED_FAIL: ${{ inputs.trivy-ignore-unfixed-fail }}
+        ARK_IN_TRIVY_EXIT_CODE: ${{ inputs.trivy-exit-code }}
+        ARK_IN_TRIVY_FORMAT: ${{ inputs.trivy-format }}
+        ARK_IN_TRIVY_SCANNERS: ${{ inputs.trivy-scanners }}
+        ARK_IN_TRIVY_TIMEOUT: ${{ inputs.trivy-timeout }}
+        ARK_IN_TRIVY_SERVER: ${{ inputs.trivy-server }}
+        ARK_IN_TRIVY_IGNOREFILE: ${{ inputs.trivy-ignorefile }}
+        ARK_IN_HADOLINT_FAILURE_LEVEL: ${{ inputs.hadolint-failure-level }}
+        ARK_IN_HADOLINT_CONFIG: ${{ inputs.hadolint-config }}
+        ARK_IN_HADOLINT_FORMAT: ${{ inputs.hadolint-format }}
+        ARK_IN_HADOLINT_LOG_MAX_FINDINGS: ${{ inputs.hadolint-log-max-findings }}
+        ARK_IN_BETTERLEAKS_BASELINE: ${{ inputs.betterleaks-baseline }}
+        ARK_IN_BETTERLEAKS_CONFIG: ${{ inputs.betterleaks-config }}
+        ARK_IN_BETTERLEAKS_FORMAT: ${{ inputs.betterleaks-format }}
+        ARK_IN_BETTERLEAKS_FAIL_ON_FINDINGS: ${{ inputs.betterleaks-fail-on-findings }}
+        ARK_IN_BETTERLEAKS_REDACT: ${{ inputs.betterleaks-redact }}
+        ARK_IN_BETTERLEAKS_LOG_MAX_FINDINGS: ${{ inputs.betterleaks-log-max-findings }}
+        ARK_IN_REPORT_URL: ${{ inputs.report-url }}
+        ARK_IN_REPORT_FAIL_ON_ERROR: ${{ inputs.report-fail-on-error }}
+      run: bash "$GITHUB_ACTION_PATH/src/run-scanner.sh"
+
+    # A tripped failure gate fails the scan step, and the post step that
+    # actions/cache would normally register is skipped after a failure. Saving
+    # explicitly is what keeps repositories with findings from re-downloading
+    # the database on every run.
+    - name: Save the Trivy database
+      if: ${{ !cancelled() && steps.cache.outputs.enabled == 'true' && steps.trivy-db.outputs.cache-hit != 'true' }}
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ steps.cache.outputs.path }}
+        key: ${{ steps.cache.outputs.key }}
+
+    - name: Upload security reports
+      if: ${{ always() && inputs.upload-artifact == 'true' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.reports-dir }}/
+        retention-days: ${{ inputs.artifact-retention-days }}
+        if-no-files-found: warn

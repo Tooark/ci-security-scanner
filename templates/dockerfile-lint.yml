@@ -1,0 +1,148 @@
+# =============================================================================
+# ci-security-scanner :: dockerfile-lint
+# -----------------------------------------------------------------------------
+# Hadolint lint of a single Dockerfile.
+#
+# Report/gate split: with the default JSON format the report always contains
+# every level (error, warning, info, style); hadolint_failure_level only
+# decides which levels fail the job.
+#
+# To lint several Dockerfiles, include this template once per file with a
+# different job_name and reports_dir.
+#
+# Precedence for every tunable: input > CI/CD variable > image default.
+# Leave an input empty to keep whatever the project already sets as a variable.
+#
+# Docs: https://github.com/Tooark/ci-security-scanner
+# =============================================================================
+spec:
+  inputs:
+    # --- job shape ------------------------------------------------------------
+    job_name:
+      default: "security:dockerfile-lint"
+      description: "Name of the generated job. Change it to lint more than one Dockerfile."
+    stage:
+      default: "test"
+      description: "Stage the job runs in. The stage must exist in the pipeline."
+    scanner_image:
+      default: "ghcr.io/tooark/security-scanner"
+      description: "Scanner image repository."
+    scanner_version:
+      default: "1.9"
+      description: "Scanner image tag. Pin it; latest makes pipelines non-reproducible."
+    allow_failure:
+      type: boolean
+      default: false
+      description: "Let the pipeline continue when the failure gate trips."
+    rules:
+      type: array
+      default:
+        - when: on_success
+      description: "Rules for the job. Replace to control when the lint runs."
+    tags:
+      type: array
+      default: []
+      description: "Runner tags used to pick an executor."
+    timeout:
+      default: "15m"
+      description: "Job timeout."
+    # --- reports --------------------------------------------------------------
+    reports_dir:
+      default: "scan-reports"
+      description: "Directory (relative to the project dir) where reports are written."
+    artifacts_expire_in:
+      default: "7 days"
+      description: "How long the report artifacts are kept."
+    # --- what to lint ---------------------------------------------------------
+    dockerfile:
+      default: "$CI_PROJECT_DIR/Dockerfile"
+      description: "Dockerfile to lint."
+    # --- hadolint -------------------------------------------------------------
+    hadolint_failure_level:
+      default: ""
+      options: ["", "error", "warning", "info", "style", "none"]
+      description: "Lowest level that fails the job. Image default: error."
+    hadolint_config:
+      default: ""
+      description: "Path to a .hadolint.yaml file."
+    hadolint_format:
+      default: ""
+      options: ["", "json", "tty", "sarif"]
+      description: "Hadolint report format."
+    hadolint_log_max_findings:
+      default: ""
+      description: "Maximum findings itemized in the job log. Image default: 20."
+    # --- webhook --------------------------------------------------------------
+    report_url:
+      default: ""
+      description: "Comma-separated webhook URLs. Set REPORT_TOKEN as a masked CI/CD variable."
+    report_fail_on_error:
+      default: ""
+      options: ["", "true", "false"]
+      description: "Fail the job when the webhook upload fails."
+    # --- escape hatch ---------------------------------------------------------
+    extra_args:
+      default: ""
+      description: "Extra flags forwarded to Hadolint after the -- separator. Word-split by the shell."
+---
+"$[[ inputs.job_name ]]":
+  stage: $[[ inputs.stage ]]
+  image:
+    name: "$[[ inputs.scanner_image ]]:$[[ inputs.scanner_version ]]"
+    # The image ships an entrypoint that execs ark-tools directly. GitLab Runner
+    # keeps the image entrypoint and attaches a shell to it, so it must be cleared.
+    entrypoint: [""]
+  tags: $[[ inputs.tags ]]
+  timeout: $[[ inputs.timeout ]]
+  allow_failure: $[[ inputs.allow_failure ]]
+  rules: $[[ inputs.rules ]]
+  variables:
+    REPORT_DIR: "$CI_PROJECT_DIR/$[[ inputs.reports_dir ]]"
+    # Inputs are staged as ARK_IN_* and only exported when non-empty, so an empty
+    # input never clobbers a variable the project set globally.
+    ARK_IN_DOCKERFILE: "$[[ inputs.dockerfile ]]"
+    ARK_IN_EXTRA_ARGS: "$[[ inputs.extra_args ]]"
+    ARK_IN_HADOLINT_FAILURE_LEVEL: "$[[ inputs.hadolint_failure_level ]]"
+    ARK_IN_HADOLINT_CONFIG: "$[[ inputs.hadolint_config ]]"
+    ARK_IN_HADOLINT_FORMAT: "$[[ inputs.hadolint_format ]]"
+    ARK_IN_HADOLINT_LOG_MAX_FINDINGS: "$[[ inputs.hadolint_log_max_findings ]]"
+    ARK_IN_REPORT_URL: "$[[ inputs.report_url ]]"
+    ARK_IN_REPORT_FAIL_ON_ERROR: "$[[ inputs.report_fail_on_error ]]"
+  before_script:
+    - |
+      echo "[ci-security-scanner] dockerfile-lint"
+      ark_apply_inputs() {
+        for _name in "$@"; do
+          eval "_value=\${ARK_IN_${_name}:-}"
+          if [ -n "${_value}" ]; then
+            export "${_name}=${_value}"
+            echo "  ${_name}=${_value}"
+          fi
+        done
+      }
+      ark_apply_inputs \
+        HADOLINT_FAILURE_LEVEL HADOLINT_CONFIG HADOLINT_FORMAT HADOLINT_LOG_MAX_FINDINGS \
+        REPORT_URL REPORT_FAIL_ON_ERROR
+      mkdir -p "$REPORT_DIR"
+  script:
+    - |
+      set -- dockerfile-lint
+      if [ -n "${ARK_IN_DOCKERFILE:-}" ]; then
+        set -- "$@" "$ARK_IN_DOCKERFILE"
+      fi
+      if [ -n "${ARK_IN_EXTRA_ARGS:-}" ]; then
+        # Word splitting is intentional here (extra_args is a flag string, not
+        # one argument) but pathname expansion is not: -f stops a value such as
+        # '*' from expanding against the files in the repository.
+        set -f
+        # shellcheck disable=SC2086
+        set -- "$@" -- $ARK_IN_EXTRA_ARGS
+        set +f
+      fi
+      echo "[ci-security-scanner] ark-tools $*"
+      ark-tools "$@"
+  artifacts:
+    when: always
+    expire_in: $[[ inputs.artifacts_expire_in ]]
+    paths:
+      - "$[[ inputs.reports_dir ]]/"

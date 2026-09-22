@@ -1,0 +1,132 @@
+# =============================================================================
+# Mirror project: publishes ci-security-scanner to a self-hosted
+# GitLab CI/CD Catalog.
+# -----------------------------------------------------------------------------
+# GitHub stays the source of truth. This project holds a copy of templates/
+# and republishes it whenever upstream cuts a release.
+#
+#   sync    weekly (schedule) - pulls the newest upstream release and, when the
+#           version changed, commits it and pushes a tag
+#   release tag pipeline - publishes that tag to the catalog
+#
+# Setup is documented in README.md next to this file.
+# =============================================================================
+stages:
+  - sync
+  - release
+
+variables:
+  UPSTREAM_REPO: "Tooark/ci-security-scanner"
+  UPSTREAM_API: "https://api.github.com"
+  UPSTREAM_DOWNLOAD: "https://github.com"
+  # Files replaced wholesale on each sync. Everything else in this project
+  # (starting with this file) is local and survives.
+  SYNCED_PATHS: "templates README.md LICENSE VERSION"
+  GIT_DEPTH: "0"
+
+# -----------------------------------------------------------------------------
+# Pulls the newest upstream release and pushes it as a new tag when the version
+# moved. Re-running it when nothing changed is a no-op.
+# -----------------------------------------------------------------------------
+sync:
+  stage: sync
+  image: alpine:3.20
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  before_script:
+    - apk add --no-cache curl jq git tar
+  script:
+    - |
+      set -eu
+
+      if [ -z "${CATALOG_PUSH_TOKEN:-}" ]; then
+        echo "CATALOG_PUSH_TOKEN is not set; see README.md" >&2
+        exit 1
+      fi
+
+      auth_header=""
+      if [ -n "${UPSTREAM_TOKEN:-}" ]; then
+        auth_header="Authorization: Bearer ${UPSTREAM_TOKEN}"
+      fi
+
+      echo "== querying the newest release of ${UPSTREAM_REPO} =="
+      if [ -n "$auth_header" ]; then
+        release_json="$(curl -fsSL -H "$auth_header" "${UPSTREAM_API}/repos/${UPSTREAM_REPO}/releases/latest")"
+      else
+        release_json="$(curl -fsSL "${UPSTREAM_API}/repos/${UPSTREAM_REPO}/releases/latest")"
+      fi
+
+      upstream_tag="$(printf '%s' "$release_json" | jq -r '.tag_name')"
+      if [ -z "$upstream_tag" ] || [ "$upstream_tag" = "null" ]; then
+        echo "could not read tag_name from the GitHub API response" >&2
+        exit 1
+      fi
+
+      # The catalog wants a bare semantic version, GitHub tags carry a v prefix.
+      version="${upstream_tag#v}"
+      echo "upstream release: $upstream_tag -> catalog version $version"
+
+      if git ls-remote --tags origin "refs/tags/${version}" | grep -q .; then
+        echo "== $version is already published; nothing to do =="
+        exit 0
+      fi
+
+      echo "== downloading $upstream_tag =="
+      curl -fsSL "${UPSTREAM_DOWNLOAD}/${UPSTREAM_REPO}/archive/refs/tags/${upstream_tag}.tar.gz" -o /tmp/upstream.tgz
+      mkdir -p /tmp/upstream
+      tar -xzf /tmp/upstream.tgz -C /tmp/upstream --strip-components=1
+
+      for path in $SYNCED_PATHS; do
+        if [ ! -e "/tmp/upstream/$path" ]; then
+          echo "upstream release is missing $path" >&2
+          exit 1
+        fi
+        rm -rf "./$path"
+        cp -r "/tmp/upstream/$path" "./$path"
+        echo "  synced $path"
+      done
+
+      git config user.name "${SYNC_COMMIT_NAME:-gitlab-catalog-sync}"
+      git config user.email "${SYNC_COMMIT_EMAIL:-gitlab-catalog-sync@${CI_SERVER_HOST}}"
+
+      git add -A -- $SYNCED_PATHS
+      if git diff --cached --quiet; then
+        echo "== content is identical; tagging $version anyway =="
+      else
+        git commit -m "chore: sync upstream ${upstream_tag}"
+      fi
+
+      # The token reaches git through a credential helper instead of the remote
+      # URL, so it never lands in argv (readable through /proc by anything else
+      # on the runner) nor in a URL that git can echo back in an error. The
+      # single quotes matter: git expands the variable when it calls the helper.
+      remote="https://${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git"
+      git config credential.helper \
+        '!f() { echo "username=oauth2"; echo "password=${CATALOG_PUSH_TOKEN}"; }; f'
+
+      git push "$remote" "HEAD:${CI_DEFAULT_BRANCH}"
+
+      # Pushing the tag starts the pipeline that runs the release job below.
+      git tag -a "$version" -m "ci-security-scanner ${version} (upstream ${upstream_tag})"
+      git push "$remote" "refs/tags/${version}"
+
+      echo "== published tag $version; the release job takes it from here =="
+
+# -----------------------------------------------------------------------------
+# Publishes the tag to the catalog. The `release` keyword is required; creating
+# the release through the API does not register it as a catalog version.
+# -----------------------------------------------------------------------------
+release:
+  stage: release
+  # A mutable tag on an image that runs in a job holding a push token. Pin it to
+  # a digest (docker buildx imagetools inspect <image>) once you have vetted one.
+  image: registry.gitlab.com/gitlab-org/cli:latest
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - echo "Publishing $CI_COMMIT_TAG to the CI/CD Catalog"
+  release:
+    tag_name: $CI_COMMIT_TAG
+    description: "ci-security-scanner $CI_COMMIT_TAG"
