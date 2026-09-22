@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The onboarding guide no longer serves `uses: Tooark/ci-security-scanner@v1.1.0`
+  as `[email protected]`. Cloudflare proxies `tooark.com` and its Email Address
+  Obfuscation rewrites anything shaped like an address; `name@vX.Y.Z` qualifies.
+  The affected spans now carry Cloudflare's `email_off` opt-out.
+- The `[1.0.0]` and `[1.1.0]` links at the bottom of this file pointed at a
+  `v1.0.0` tag that was never pushed, so both 404'd.
+
 ## [1.1.0] - 2026-09-22
 
 ### Added
@@ -56,7 +65,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [1.0.0] - 2026-09-21
 
-First release. Pins `ghcr.io/tooark/security-scanner:1.9`.
+First release. Pins `ghcr.io/tooark/security-scanner:1.9`. Never published as
+a tag — this content first reached consumers as part of 1.1.0.
 
 ### Added
 
@@ -97,5 +107,5 @@ First release. Pins `ghcr.io/tooark/security-scanner:1.9`.
   writing findings into an uploaded artifact.
 
 [Unreleased]: https://github.com/Tooark/ci-security-scanner/compare/v1.1.0...HEAD
-[1.1.0]: https://github.com/Tooark/ci-security-scanner/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/Tooark/ci-security-scanner/releases/tag/v1.0.0
+[1.1.0]: https://github.com/Tooark/ci-security-scanner/releases/tag/v1.1.0
+[1.0.0]: https://github.com/Tooark/ci-security-scanner/commit/56263b1c4c085d5ce785ed263194c04609b8f0be
