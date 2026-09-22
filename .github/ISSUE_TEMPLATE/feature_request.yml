@@ -1,0 +1,77 @@
+name: ✨ Feature request
+description: Suggest an improvement to the templates, the Action or the tooling.
+title: "[feat] "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for your idea! Please explain the **problem** you are trying to solve, not just the solution.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight
+      options:
+        - label: I have searched existing issues.
+          required: true
+        - label: This cannot already be done by overriding the generated job or setting the matching environment variable.
+          required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which area?
+      options:
+        - New input on an existing scan
+        - New scan command
+        - GitLab templates only
+        - GitHub Action only
+        - Runner script (src/run-scanner.sh)
+        - Validation scripts / CI
+        - Documentation (README, docs/, examples/)
+        - Release and versioning
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What problem are you trying to solve? Who is affected?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: |
+        For a new input, name the environment variable the scanner image already reads —
+        the component forwards variables, it does not implement scanning behaviour.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: parity
+    attributes:
+      label: Does it apply to both platforms?
+      description: |
+        Input names, defaults and precedence are kept identical across GitLab and GitHub.
+        A change that lands on one side only needs a reason.
+      options:
+        - Both GitLab and GitHub
+        - GitHub only — and here is why
+        - GitLab only — and here is why
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else?

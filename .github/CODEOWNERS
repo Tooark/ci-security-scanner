@@ -1,0 +1,42 @@
+# ==============================================================================
+# Tooark ci-security-scanner — CODEOWNERS
+# ==============================================================================
+# GitHub uses this file to auto-request reviews from the right owner.
+# Rules are matched top-to-bottom; the LAST matching rule wins per file.
+#
+# NOTE: uses the maintainer's personal handle (@paulosfjunior). Swap to a
+# @Tooark/... team once the org has 2+ reviewers.
+# ==============================================================================
+
+# Global default — anything not matched by a later rule.
+*                                   @paulosfjunior
+
+# Governance, legal and licensing.
+/LICENSE                            @paulosfjunior
+/CODE_OF_CONDUCT.md                 @paulosfjunior
+/SECURITY.md                        @paulosfjunior
+/SUPPORT.md                         @paulosfjunior
+/CONTRIBUTING.md                    @paulosfjunior
+
+# CI/CD and GitHub configuration (supply-chain / release sensitive).
+/.github/                           @paulosfjunior
+/.github/workflows/                 @paulosfjunior
+/.github/CODEOWNERS                 @paulosfjunior
+
+# The published product: these run inside other people's pipelines, so a
+# change here reaches every consuming project on the next tag move.
+/action.yml                         @paulosfjunior
+/src/                               @paulosfjunior
+/templates/                         @paulosfjunior
+
+# Single source of truth for the pinned scanner image, and the checks that
+# keep the two platforms from drifting apart.
+/VERSION                            @paulosfjunior
+/scripts/                           @paulosfjunior
+
+# Support boundaries users rely on when adopting the component.
+/SUPPORTED-INTEGRATIONS.md          @paulosfjunior
+
+# Pipelines users copy into their own projects, and the onboarding guide.
+/examples/                          @paulosfjunior
+/docs/                              @paulosfjunior

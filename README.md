@@ -430,13 +430,14 @@ that schema applies to `.gitlab-ci.yml` files, not to these templates.
 ## Repository layout
 
 ```text
-templates/          GitLab CI/CD component templates, one job each
-action.yml          GitHub composite Action
-src/run-scanner.sh  Shared runner behind the Action
-scripts/            Validation run in CI and locally
-examples/           Ready-to-copy pipelines for both platforms
-docs/               Onboarding guide, published to GitHub Pages
-VERSION             Single source of truth for versions
+templates/                  GitLab CI/CD component templates, one job each
+action.yml                  GitHub composite Action
+src/run-scanner.sh          Shared runner behind the Action
+scripts/                    Validation run in CI and locally
+examples/                   Ready-to-copy pipelines for both platforms
+docs/                       Onboarding guide, published to GitHub Pages
+SUPPORTED-INTEGRATIONS.md   Platforms, runners and versions supported
+VERSION                     Single source of truth for versions
 ```
 
 ---
