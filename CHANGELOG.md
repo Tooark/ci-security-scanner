@@ -12,6 +12,34 @@ All notable changes to this project are documented here. The format follows
   `.github/workflows/pages.yml`. It walks the repository file by file and
   records the reasoning behind each decision, for readers who know software
   development but not CI.
+- OSS governance files modelled on `Tooark/base-images`: `SECURITY.md`,
+  `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SUPPORT.md`, `.github/CODEOWNERS`,
+  `.github/FUNDING.yml`, a pull request template and issue forms.
+- `SUPPORTED-INTEGRATIONS.md`, recording the support boundaries previously
+  scattered across header comments and README gotchas: supported platforms,
+  runners and executors, the component-to-image version pairing, and the
+  network destinations a scan needs.
+
+### Changed
+
+- **Minimum Actions Runner version on self-hosted runners.** `action.yml` now
+  references `actions/upload-artifact@v7` and `actions/cache@v6`, which run on
+  Node.js 24 and require Actions Runner **2.327.1 or newer** — the floor
+  introduced by `actions/upload-artifact@v6`. GitHub-hosted runners are
+  unaffected. A self-hosted runner older than that will fail the artifact
+  upload and the cache steps once `v1` or `v1.0` moves to a release containing
+  this change.
+- This repository's own workflows moved to `actions/checkout@v7`,
+  `actions/configure-pages@v6` and `actions/deploy-pages@v5`. No consumer
+  impact; the runners had started warning that Node 20 is deprecated.
+
+### Fixed
+
+- `scripts/check-sync.sh` no longer trips ShellCheck `SC2013`, which failed the
+  CI lint step on every commit and blocked every Dependabot pull request. The
+  `ARK_IN_*` parity check now reads names with `while read` fed by process
+  substitution, which keeps the loop in the current shell so the failure flag
+  survives it.
 
 ## [1.0.0] - 2026-09-21
 
