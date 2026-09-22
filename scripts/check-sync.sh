@@ -148,7 +148,9 @@ echo "3. ARK_IN_* wiring between action.yml and src/run-scanner.sh"
 action_ok=1
 runner_forwarded="$(forwarded_names src/run-scanner.sh add_env_from_input | sed 's/^/ARK_IN_/')"
 
-for name in $(grep -oE 'ARK_IN_[A-Z0-9_]+' action.yml | sort -u); do
+# Read rather than word-split: process substitution keeps the loop in this
+# shell, so action_ok survives it (a pipe would run the body in a subshell).
+while read -r name; do
   # Either referenced verbatim, or forwarded as a bare name to add_env_from_input.
   if [[ $runner == *"$name"* ]]; then
     continue
@@ -158,7 +160,7 @@ for name in $(grep -oE 'ARK_IN_[A-Z0-9_]+' action.yml | sort -u); do
   fi
   fail "action.yml sets $name but src/run-scanner.sh never forwards it"
   action_ok=0
-done
+done < <(grep -oE 'ARK_IN_[A-Z0-9_]+' action.yml | sort -u)
 [ "$action_ok" -eq 1 ] && ok "action.yml -> src/run-scanner.sh"
 
 echo
