@@ -53,9 +53,16 @@ runner host, where `ark-tools` does not exist.
 
 ### Minimum Actions Runner version
 
-GitHub-hosted runners always satisfy this. A **self-hosted** runner must be
-recent enough for the `actions/*` versions that [`action.yml`](action.yml)
-references. Any dependency bump that raises this floor is recorded in
+**Actions Runner 2.327.1 or newer** on self-hosted runners. GitHub-hosted
+runners always satisfy this.
+
+The floor comes from the `actions/*` versions that [`action.yml`](action.yml)
+references, not from this component directly: `actions/upload-artifact@v7` and
+`actions/cache@v6` run on Node.js 24, and v6 of the artifact action introduced
+the 2.327.1 requirement. An older self-hosted runner fails the artifact upload
+and the cache steps.
+
+Any dependency bump that raises this floor is recorded in
 [`CHANGELOG.md`](CHANGELOG.md) as a consumer-visible change — check it before
 moving a floating tag on a fleet of self-hosted runners.
 
