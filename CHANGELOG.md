@@ -23,6 +23,12 @@ All notable changes to this project are documented here. The format follows
   The affected spans now carry Cloudflare's `email_off` opt-out.
 - The `[1.0.0]` and `[1.1.0]` links at the bottom of this file pointed at a
   `v1.0.0` tag that was never pushed, so both 404'd.
+- The guide's JavaScript moved out of the page and into `docs/guide.js`. The
+  site is served behind a Content Security Policy of `script-src 'self'`, which
+  blocks inline `<script>` outright — so the theme toggle, the language toggle
+  and the nav highlight were all dead on the published page while working
+  locally. The button labels moved into `data-` attributes on the buttons, so
+  the script file now carries no translated text at all.
 - The guide serves its own favicon. The link pointed at `../media/favicon.png`,
   which resolves above the published root — `docs/` is the site root — and only
   appeared to work because the organization's site happens to serve an

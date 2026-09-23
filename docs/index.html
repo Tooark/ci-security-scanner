@@ -5,27 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="Guia de onboarding do ci-security-scanner: o que cada arquivo faz, como as fachadas GitHub e GitLab se conectam, e o porque de cada decisao.">
 
-<!-- Aplicado antes da pintura para que tema e idioma escolhidos nao pisquem. -->
-<script>
-  try {
-    var arkTheme = localStorage.getItem("ark-theme");
-    if (arkTheme === "dark" || arkTheme === "light") {
-      document.documentElement.setAttribute("data-theme", arkTheme);
-      document.documentElement.style.colorScheme = arkTheme;
-    }
-  } catch (e) {}
-
-  try {
-    var arkLang = localStorage.getItem("ark-lang");
-    if (arkLang !== "pt" && arkLang !== "en") {
-      // Sem preferencia salva: segue o navegador, com o portugues como padrao
-      // do documento (e o que o HTML ja carimba, para quem esta sem JS).
-      arkLang = (navigator.language || "pt").toLowerCase().indexOf("pt") === 0 ? "pt" : "en";
-    }
-    document.documentElement.setAttribute("data-lang", arkLang);
-    document.documentElement.lang = arkLang === "pt" ? "pt-BR" : "en";
-  } catch (e) {}
-</script>
+<!-- Externo, nao inline: o site e servido com uma Content Security Policy
+     de script-src 'self', que bloqueia <script> inline. Sem defer porque
+     tema e idioma precisam ser carimbados antes da primeira pintura. -->
+<script src="guide.js"></script>
 
 <style>
   /* Reset minimo. */
@@ -652,8 +635,12 @@
     </ul>
 
     <div class="toggles">
-      <button type="button" id="lang-toggle" class="toggle-btn" aria-live="polite">English</button>
-      <button type="button" id="theme-toggle" class="toggle-btn" aria-live="polite">modo escuro</button>
+      <button type="button" id="lang-toggle" class="toggle-btn" aria-live="polite"
+              data-label-pt="English" data-label-en="Português"
+              data-aria-pt="Switch to English" data-aria-en="Mudar para português">English</button>
+      <button type="button" id="theme-toggle" class="toggle-btn" aria-live="polite"
+              data-pt-dark="modo escuro" data-pt-light="modo claro"
+              data-en-dark="dark mode" data-en-light="light mode">modo escuro</button>
     </div>
   </header>
 
@@ -2382,131 +2369,5 @@ shellcheck -s bash src/run-scanner.sh scripts/check-sync.sh</code></pre>
   </main>
 </div>
 
-<script>
-  (function () {
-    var links = Array.prototype.slice.call(document.querySelectorAll('nav a'));
-    var map = {};
-    var sections = [];
-
-    links.forEach(function (a) {
-      var id = a.getAttribute('href').slice(1);
-      var el = document.getElementById(id);
-      if (!el) return;
-      map[id] = a;
-      sections.push(el);
-    });
-
-    function setActive(id) {
-      links.forEach(function (a) { a.classList.remove('is-active'); });
-      if (map[id]) map[id].classList.add('is-active');
-    }
-
-    if ('IntersectionObserver' in window) {
-      var visible = {};
-      var obs = new IntersectionObserver(function (entries) {
-        entries.forEach(function (e) { visible[e.target.id] = e.isIntersecting; });
-        for (var i = 0; i < sections.length; i++) {
-          if (visible[sections[i].id]) { setActive(sections[i].id); return; }
-        }
-      }, { rootMargin: '-15% 0px -70% 0px', threshold: 0 });
-      sections.forEach(function (s) { obs.observe(s); });
-    }
-
-    setActive(sections.length ? sections[0].id : '');
-  })();
-</script>
-
-<script>
-  /* Alternadores de tema e idioma (so nesta versao). Os tokens de cor da pagina
-     ja cobrem os tres estados de tema: sem carimbo, data-theme="light" e
-     data-theme="dark". O idioma e puramente CSS: cada bloco existe duas vezes
-     no DOM e o data-lang da raiz esconde um dos dois. */
-
-  var ARK_STRINGS = {
-    pt: {
-      title: "CI Security Scanner",
-      description: "Guia de onboarding do ci-security-scanner: o que cada arquivo faz, como as fachadas GitHub e GitLab se conectam, e o porquê de cada decisão.",
-      langBtn: "English",
-      langAria: "Switch to English",
-      dark: "modo escuro",
-      light: "modo claro"
-    },
-    en: {
-      title: "CI Security Scanner",
-      description: "Onboarding guide to ci-security-scanner: what each file does, how the GitHub and GitLab front ends connect, and the reasoning behind each decision.",
-      langBtn: "Português",
-      langAria: "Mudar para português",
-      dark: "dark mode",
-      light: "light mode"
-    }
-  };
-
-  (function () {
-    var root = document.documentElement;
-    var btn = document.getElementById("lang-toggle");
-    var themeBtn = document.getElementById("theme-toggle");
-    if (!btn) return;
-
-    function currentLang() {
-      return root.getAttribute("data-lang") === "en" ? "en" : "pt";
-    }
-
-    function paintLang() {
-      var lang = currentLang();
-      var s = ARK_STRINGS[lang];
-      root.lang = lang === "pt" ? "pt-BR" : "en";
-      btn.textContent = s.langBtn;
-      btn.setAttribute("aria-label", s.langAria);
-      document.title = s.title;
-      var meta = document.querySelector('meta[name="description"]');
-      if (meta) meta.setAttribute("content", s.description);
-      if (window.arkPaintTheme) window.arkPaintTheme();
-    }
-
-    btn.addEventListener("click", function () {
-      var next = currentLang() === "en" ? "pt" : "en";
-      root.setAttribute("data-lang", next);
-      try { localStorage.setItem("ark-lang", next); } catch (e) {}
-      paintLang();
-    });
-
-    window.arkCurrentLang = currentLang;
-    paintLang();
-  })();
-
-  (function () {
-    var root = document.documentElement;
-    var btn = document.getElementById("theme-toggle");
-    if (!btn) return;
-
-    function current() {
-      var attr = root.getAttribute("data-theme");
-      if (attr === "dark" || attr === "light") return attr;
-      return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light";
-    }
-
-    function paint() {
-      var theme = current();
-      var lang = window.arkCurrentLang ? window.arkCurrentLang() : "pt";
-      var s = ARK_STRINGS[lang];
-      root.style.colorScheme = theme;
-      btn.textContent = theme === "dark" ? s.light : s.dark;
-    }
-
-    // O alternador de idioma chama isto para retraduzir o rotulo do tema.
-    window.arkPaintTheme = paint;
-
-    btn.addEventListener("click", function () {
-      var next = current() === "dark" ? "light" : "dark";
-      root.setAttribute("data-theme", next);
-      try { localStorage.setItem("ark-theme", next); } catch (e) {}
-      paint();
-    });
-
-    paint();
-  })();
-</script>
 </body>
 </html>
